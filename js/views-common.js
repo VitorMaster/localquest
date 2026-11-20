@@ -1,0 +1,128 @@
+/* Atlas — peças de interface compartilhadas entre as telas. */
+(function () {
+  const Q = window.Q;
+  const E = Q.Engine;
+  const V = (Q.V = {});
+  Q.Views = {};
+  const esc = Q.esc;
+  const S = () => Q.Store.state;
+
+  Q.go = (hash) => {
+    if (location.hash === hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
+    else location.hash = hash;
+  };
+
+  /* ---------- filtro global (curso › período › matéria) ---------- */
+  V.filter = () => S().ui.filter;
+  V.sanitizeFilter = () => {
+    const f = V.filter();
+    ['curso', 'periodo', 'materia'].forEach((k) => {
+      if (f[k] && !E.distinct(k, f).includes(f[k])) f[k] = '';
+    });
+  };
+  V.filtersBar = (opts = {}) => {
+    V.sanitizeFilter();
+    const f = V.filter();
+    const sel = (k, label) => {
+      const vals = E.distinct(k, f);
+      return `<select data-change="filter" data-key="${k}" aria-label="${label}"><option value="">${label}: todos</option>${vals
+        .map((v) => `<option ${f[k] === v ? 'selected' : ''}>${esc(v)}</option>`)
+        .join('')}</select>`;
+    };
+    const any = f.curso || f.periodo || f.materia;
+    return `<div class="filters">${sel('curso', 'Curso')}${sel('periodo', 'Período')}${sel('materia', 'Matéria')}${
+      any ? '<button class="btn sm ghost" data-act="clear-filter">Limpar</button>' : ''
+    }</div>`;
+  };
+
+  V.matChips = (m) =>
+    `<span class="chip">🎓 ${esc(m.curso)}</span><span class="chip">📅 ${esc(m.periodo)}</span><span class="chip">📘 ${esc(m.materia)}</span>`;
+
+  /* ---------- imagens ---------- */
+  V.img = (id, cls = '', extra = '') => `<img data-img="${id}" class="${cls}" alt="" ${extra}>`;
+  V.zoom = (id, caption = '') => {
+    const m = Q.modal(`<img class="zoom" data-img="${id}" alt="">${caption ? `<p class="muted" style="text-align:center;margin-top:12px">${esc(caption)}</p>` : ''}`, { cls: 'wide' });
+    Q.Store.hydrateImages(m.el);
+  };
+
+  /* ---------- mapa de cobertura ---------- */
+  V.mapLegend = () =>
+    `<div class="legend"><span><i style="background:var(--good)"></i>Dominado</span><span><i style="background:var(--warn)"></i>Em progresso</span><span><i style="background:var(--bad)"></i>Frágil</span><span><i style="background:var(--track)"></i>Não explorado</span><span><i style="background:repeating-linear-gradient(45deg,transparent 0 3px,rgba(127,127,127,.6) 3px 5px);box-shadow:inset 0 0 0 1px var(--line)"></i>Sem questão no banco</span></div>`;
+
+  V.tileMap = (cov, o = {}) =>
+    `<div class="map">${cov.topics
+      .map((x) => {
+        const tip = `Slide ${x.topic.n} — ${x.topic.title}\n${E.STATE_LABEL[x.state]}${x.tries ? ' · ' + x.tries + ' resposta(s) · domínio ' + Math.round(x.mastery * 100) + '%' : ''}${x.nobank ? ' · sem questão no banco' : ''}`;
+        return `<button class="tile s-${x.state} ${x.nobank ? 'nobank' : ''} ${o.cur && o.cur.has(x.topic.id) ? 'cur' : ''}" data-act="open-topic" data-m="${cov.material.id}" data-t="${x.topic.id}" title="${esc(tip)}" aria-label="${esc(tip)}">${x.topic.n}</button>`;
+      })
+      .join('')}</div>`;
+
+  /** Bloco de panorama de um material: mapa + números + veredito de exaustão. */
+  V.coverageBlock = (cov, o = {}) => {
+    const m = cov.material;
+    const cur = o.cur; // Set de topicIds tocados nesta prova (opcional)
+    const nob = cov.topics.filter((x) => x.nobank);
+    let verdict;
+    if (cov.exhausted) {
+      verdict = `<div class="verdict ok"><span class="em">✅</span><div><b>Conteúdo exaurido</b><br><small>Todos os ${cov.total} temas foram cobrados e todas as ${cov.questions} questões do banco já foram respondidas pelo menos uma vez.</small></div></div>`;
+    } else {
+      const items = [];
+      if (cov.total - cov.touched > 0) items.push(`<b>${cov.total - cov.touched}</b> tema(s) ainda não cobrado(s)`);
+      if (cov.unseen > 0) items.push(`<b>${cov.unseen}</b> questão(ões) do banco inéditas`);
+      if (nob.length) items.push(`<b>${nob.length}</b> slide(s) sem nenhuma questão (${nob.slice(0, 5).map((x) => x.topic.n).join(', ')}${nob.length > 5 ? '…' : ''})`);
+      if (!cov.questions) items.length = 0, items.push('O banco ainda não tem questões para este material');
+      verdict = `<div class="verdict todo"><span class="em">🧭</span><div><b>Conteúdo ainda não exaurido</b><br><small>Faltam: ${items.join(' · ')}.</small></div></div>`;
+    }
+    return `<div class="mat-block">
+      <div class="mat-title"><div><a href="#/biblioteca/${m.id}"><b>${esc(m.title)}</b></a><div class="row wrap gap" style="margin-top:6px">${V.matChips(m)}</div></div>
+        <div class="row gap"><b style="font-size:1.4rem">${Math.round(cov.usage * 100)}%</b><small class="muted">dos temas<br>já cobrados</small></div></div>
+      ${V.tileMap(cov, { cur })}
+      <div class="stat-row">
+        <div class="stat"><b>${cov.touched}/${cov.total}</b><small>temas cobrados</small></div>
+        <div class="stat"><b style="color:var(--good)">${cov.mastered}</b><small>dominados</small></div>
+        <div class="stat"><b style="color:var(--bad)">${cov.weak}</b><small>frágeis</small></div>
+        <div class="stat"><b>${cov.seen}/${cov.questions}</b><small>questões do banco usadas</small></div>
+        ${o.thisAttempt ? `<div class="stat"><b>${o.thisAttempt.q}</b><small>questões nesta prova · ${o.thisAttempt.t} temas</small></div>` : ''}
+      </div>${verdict}</div>`;
+  };
+
+  /* ---------- visualizador de slide ---------- */
+  V.openTopic = (materialId, topicId) => {
+    const m = Q.Store.material(materialId);
+    const t = m && m.topics.find((x) => x.id === topicId);
+    if (!t) return;
+    const cov = E.coverage(m);
+    const info = cov.topics.find((x) => x.topic.id === t.id);
+    const qs = Q.Store.questionsOf(m.id).filter((q) => (q.topicIds || []).includes(t.id));
+    const mod = Q.modal(`
+      <div class="eyebrow">${esc(m.title)} · slide ${t.n}</div>
+      <h2>${esc(t.title)}</h2>
+      <div class="row wrap gap" style="margin-bottom:12px">
+        <span class="badge ${info.state === 'dominado' ? 'b-good' : info.state === 'fragil' ? 'b-bad' : info.state === 'progresso' ? 'b-warn' : 'b-mute'}">${E.STATE_LABEL[info.state]}</span>
+        <span class="chip">${qs.length} questão(ões) no banco</span>${info.tries ? `<span class="chip">${info.tries} resposta(s) · domínio ${Math.round(info.mastery * 100)}%</span>` : ''}
+      </div>
+      <div class="pre" style="color:var(--muted)">${esc(t.text) || '<i>Slide sem texto.</i>'}</div>
+      ${t.images.length ? `<div class="mt" style="display:grid;gap:10px">${t.images.map((i) => V.img(i.id, 'zoom')).join('')}</div>` : ''}
+      <div class="row end gap mt"><a class="btn" href="#/banco/${m.id}" data-close>Ver banco</a><button class="btn ghost" data-close>Fechar</button></div>`, { cls: 'wide' });
+    Q.Store.hydrateImages(mod.el);
+  };
+
+  /* ---------- delegação de eventos comuns ---------- */
+  V.common = {
+    'open-topic': (el) => V.openTopic(el.dataset.m, el.dataset.t),
+    'zoom-img': (el) => V.zoom(el.dataset.img, el.dataset.cap),
+    'clear-filter': () => {
+      Object.assign(V.filter(), { curso: '', periodo: '', materia: '' });
+      Q.Store.save();
+      Q.App.refresh();
+    },
+  };
+  V.commonChange = {
+    filter: (el) => {
+      V.filter()[el.dataset.key] = el.value;
+      V.sanitizeFilter();
+      Q.Store.save();
+      Q.App.refresh();
+    },
+  };
+})();
