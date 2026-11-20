@@ -169,6 +169,9 @@
     covBy.forEach((c) => c.topics.forEach((t) => topicInfo.set(t.topic.id, t)));
     let pool = E.pool(opts.materialIds);
     if (opts.onlyIds) pool = pool.filter((q) => opts.onlyIds.includes(q.id));
+    const useImages = opts.useImages !== false;
+    const hasImg = (q) => (q.imageIds || []).length > 0;
+    if (!useImages) pool = pool.filter((q) => !hasImg(q)); // questões que dependem de figura ficam de fora
     const n = Math.min(opts.n, pool.length);
     const strategy = opts.strategy || 'misto';
 
@@ -187,12 +190,22 @@
 
     // Seleção com teto de "certa é a mais longa" (≈ acaso) para não premiar quem marca a maior.
     const cap = Math.max(1, Math.floor(n * 0.25) + (n >= 8 ? 1 : 0));
+    // Imagens só onde há necessidade de aprendizado: no máx. ~25% da prova.
+    const imgCap = Math.max(1, Math.ceil(n * 0.25));
     const chosen = [];
-    let biased = 0;
+    let biased = 0, imgs = 0;
     for (const q of ranked) {
       if (chosen.length >= n) break;
       if (G.isLengthBiased(q) && biased >= cap) continue;
+      if (hasImg(q) && imgs >= imgCap) continue;
       if (G.isLengthBiased(q)) biased++;
+      if (hasImg(q)) imgs++;
+      chosen.push(q);
+    }
+    for (const q of ranked) {
+      if (chosen.length >= n) break;
+      if (chosen.includes(q) || (hasImg(q) && imgs >= imgCap)) continue;
+      if (hasImg(q)) imgs++;
       chosen.push(q);
     }
     for (const q of ranked) {
@@ -210,6 +223,7 @@
       strategy,
       scope: { materialIds: opts.materialIds.slice(), filter: opts.filter || {} },
       timerMin: opts.timerMin || 0,
+      useImages,
       idx: 0,
       items,
       key: keyIdx.map((k) => Q.LETTERS[k]).join(''),

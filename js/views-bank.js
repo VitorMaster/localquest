@@ -24,8 +24,8 @@
         ${[0, 1, 2, 3].map((i) => `<div class="opt-edit"><input type="radio" name="correct" value="${i}" ${ex && ex.correct === i ? 'checked' : ''} aria-label="Alternativa ${Q.LETTERS[i]} correta"><input type="text" class="q-opt" data-i="${i}" placeholder="Alternativa ${Q.LETTERS[i]}" value="${esc(ex ? ex.options[i] : '')}"></div>`).join('')}
         <small class="muted">A ordem é embaralhada a cada prova. Mantenha as 4 alternativas com tamanho parecido.</small></div>
       <div class="field"><label>Explicação (aparece na revisão)</label><textarea id="q-exp" rows="2">${esc(ex ? ex.explanation : '')}</textarea></div>
-      <div class="field"><label>Imagens na questão</label><div id="q-imgs" class="pick-imgs"></div>
-        <div class="row gap mt-s"><button class="btn sm" id="q-up">🖼️ Anexar outra imagem</button><input type="file" id="q-file" accept="image/*" hidden><small class="muted">Imagens dos slides marcados aparecem aqui automaticamente.</small></div></div>
+      <div class="field"><label>Imagem na questão (use só se for essencial para o aprendizado)</label><div id="q-imgs" class="pick-imgs"></div>
+        <div class="row gap mt-s"><button class="btn sm" id="q-up">🖼️ Anexar outra imagem</button><input type="file" id="q-file" accept="image/*" hidden><small class="muted">Marque a figura apenas quando ela for necessária para raciocinar.</small></div></div>
       <div class="grid g2"><div class="field"><label>Dificuldade</label><select id="q-diff">${[1, 2, 3].map((d) => `<option value="${d}" ${(ex ? ex.difficulty : 2) === d ? 'selected' : ''}>${['', 'Fácil (lembrar)', 'Média (compreender)', 'Difícil (aplicar)'][d]}</option>`).join('')}</select></div>
         <div class="field"><label>Ordem</label><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--text);font-weight:500"><input type="checkbox" id="q-fixed" ${ex && ex.fixedOrder ? 'checked' : ''}> Manter a ordem das alternativas<br><small class="muted">(ex.: “apenas I e II”)</small></label></div></div>
       <div class="card flat tight" id="q-lint"></div>
@@ -57,9 +57,8 @@
     el.addEventListener('change', (e) => {
       if (e.target.matches('#q-imgs input')) e.target.checked ? chosenImgs.add(e.target.value) : chosenImgs.delete(e.target.value);
       if (e.target.matches('[data-topic]')) {
-        // ao marcar um slide, marca as figuras dele por padrão
         const t = m.topics.find((x) => x.id === e.target.value);
-        t.images.forEach((i) => (e.target.checked ? chosenImgs.add(i.id) : chosenImgs.delete(i.id)));
+        if (!e.target.checked) t.images.forEach((i) => chosenImgs.delete(i.id));
         refreshImgs();
       }
       refreshLint();
@@ -173,7 +172,7 @@
         <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Gerar com IA</button></div></div>
       <div class="card mb"><div class="row between wrap gap">
         <div class="field" style="margin:0;min-width:260px"><label>Material</label><select data-change="bank-mat">${all.map((x) => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.materia)} · ${esc(x.title)}</option>`).join('')}</select></div>
-        <div class="stat-row" style="margin:0;flex:1;min-width:300px"><div class="stat"><b>${qs.length}</b><small>questões</small></div><div class="stat"><b>${cov.inBank}/${cov.total}</b><small>slides com questão</small></div><div class="stat"><b style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad}</b><small>com pistas graves</small></div><div class="stat"><b>${longest}%</b><small>certa é a maior (ideal ≈ 25%)</small></div></div></div>
+        <div class="stat-row" style="margin:0;flex:1;min-width:300px"><div class="stat"><b>${qs.length}</b><small>questões</small></div><div class="stat"><b>${cov.inBank}/${cov.total}</b><small>slides com questão</small></div><div class="stat"><b style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad}</b><small>com pistas graves</small></div><div class="stat"><b>${Q.pct(qs.filter((q) => (q.imageIds || []).length).length, qs.length)}%</b><small>com imagem (ideal ≤ 20%)</small></div><div class="stat"><b>${longest}%</b><small>certa é a maior (ideal ≈ 25%)</small></div></div></div>
         ${cov.topics.some((x) => x.nobank) ? `<p class="muted mt-s">📝 Slides sem questão: ${cov.topics.filter((x) => x.nobank).map((x) => `<button class="chip" data-act="open-topic" data-m="${m.id}" data-t="${x.topic.id}">${x.topic.n}</button>`).join(' ')}</p>` : ''}</div>
       <div class="card"><div class="row between wrap gap"><h3>Questões <span class="sub">${shown.length} exibida(s)${warn ? ` · ${warn} com avisos` : ''}</span></h3>
         <label style="display:flex;gap:8px;align-items:center;font-size:.88rem"><input type="checkbox" data-change="only-issues" ${onlyIssues ? 'checked' : ''}> só com alertas</label></div>

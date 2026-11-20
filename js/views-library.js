@@ -52,7 +52,7 @@
         const m = Q.Ingest.createMaterial(meta, parsed);
         mod.close();
         const imgs = parsed.topics.reduce((s, t) => s + t.images.length, 0);
-        Q.toast(`${parsed.topics.length} slides lidos, ${imgs} imagem(ns) extraída(s)${parsed.skipped ? ` (${parsed.skipped} em formato não suportado foram ignoradas)` : ''}`, 'good', 6000);
+        Q.toast(`${parsed.topics.length} slides lidos, ${imgs} imagem(ns) extraída(s)`, 'good', 6000);
         Q.go('#/biblioteca/' + m.id);
       } catch (e) {
         console.error(e);

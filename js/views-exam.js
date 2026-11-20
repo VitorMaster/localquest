@@ -31,7 +31,10 @@
       if (preset) { cfg.materialIds = preset.materialIds.filter((id) => Q.Store.material(id)); delete S().ui.examPreset; }
       if (!cfg.materialIds) cfg.materialIds = mats.map((m) => m.id);
       cfg.materialIds = cfg.materialIds.filter((id) => Q.Store.material(id) && Q.Store.questionsOf(id).length);
-      const pool = E.pool(cfg.materialIds).length;
+      const useImg = S().settings.useImages !== false;
+      const fullPool = E.pool(cfg.materialIds);
+      const imgQs = fullPool.filter((q) => (q.imageIds || []).length).length;
+      const pool = useImg ? fullPool.length : fullPool.length - imgQs;
       const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
       const allMats = S().materials.filter((m) => Q.Store.questionsOf(m.id).length);
       const sesBanner = S().session ? `<div class="card mb row between wrap gap" style="border-color:var(--accent2)"><div><b>Você tem uma prova em andamento</b><br><small class="muted">${S().session.items.filter((i) => i.a).length} de ${S().session.items.length} respondidas.</small></div><a class="btn primary" href="#/prova">▶ Continuar</a></div>` : '';
@@ -43,6 +46,7 @@
           <div class="card"><h3>1 · Materiais <span class="sub">${cfg.materialIds.length} selecionado(s)</span></h3>
             ${(mats.length ? mats : allMats).map((m) => { const cov = E.coverage(m); return `<label class="opt-card mt-s" style="align-items:center"><input type="checkbox" data-change="cfg-mat" value="${m.id}" ${cfg.materialIds.includes(m.id) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent2)">
               <span style="flex:1"><b>${esc(m.title)}</b><small>${esc(m.materia)} · ${esc(m.periodo)} · ${esc(m.curso)}</small></span><span class="chip">${cov.questions} questões</span><span class="chip">${Math.round(cov.usage * 100)}% cobertos</span></label>`; }).join('')}</div>
+          <div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🖼️ Usar imagens nas questões</h3><small class="muted">${useImg ? `Ligado: só ${imgQs} questão(ões) do banco levam figura, e no máximo ~1 a cada 4 na prova.` : `Desligado: ${imgQs} questão(ões) que dependem de figura ficam de fora desta prova.`}</small></div>${V.imgSwitch()}</div></div>
           <div class="card"><h3>2 · Quantidade</h3><div class="seg">${[5, 10, 15, 20, 30, 50, 0].map((v) => `<button data-act="cfg-n" data-v="${v}" class="${cfg.n === v ? 'on' : ''}">${v === 0 ? 'Todas' : v}</button>`).join('')}</div>
             <p class="muted mt-s">${pool ? `${n} de ${pool} questões disponíveis.` : 'Nenhuma questão no escopo.'}${cfg.n > pool && pool ? ' (o banco tem menos questões que o pedido)' : ''}</p></div>
           <div class="card"><h3>3 · Estratégia</h3><div class="grid g2">${STRATS.map(([k, em, t, d]) => `<button class="opt-card ${cfg.strategy === k ? 'on' : ''}" data-act="cfg-strat" data-v="${k}"><span class="em">${em}</span><span><b>${t}</b><small class="muted">${d}</small></span></button>`).join('')}</div></div>
@@ -68,9 +72,11 @@
       'cfg-timer': (el) => { cfg.timer = +el.dataset.v; Q.App.refresh(); },
       start: async () => {
         if (S().session && !(await Q.confirm('Há uma prova em andamento. Iniciar outra descarta a atual. Continuar?', 'Descartar e iniciar'))) return;
-        const pool = E.pool(cfg.materialIds).length;
+        const useImg = S().settings.useImages !== false;
+        const fp = E.pool(cfg.materialIds);
+        const pool = useImg ? fp.length : fp.filter((q) => !(q.imageIds || []).length).length;
         const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
-        Q.Exam.start({ materialIds: cfg.materialIds, n, strategy: cfg.strategy, mode: cfg.mode, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
+        Q.Exam.start({ useImages: useImg, materialIds: cfg.materialIds, n, strategy: cfg.strategy, mode: cfg.mode, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
       },
     },
     change: {
@@ -151,8 +157,8 @@
           <div class="row gap">${ses.timerMin ? '<span class="timer" id="timer">--:--</span>' : ''}<button class="btn sm ghost" data-act="quit">Encerrar</button></div></div>
         <div class="segs" aria-label="Progresso">${segs}</div>
         <div class="card q-card">
-          <div class="q-meta"><span class="chip">Questão ${ses.idx + 1} de ${ses.items.length}</span><span class="chip">${['', 'Fácil', 'Média', 'Difícil'][q.difficulty || 2]}</span>${(q.imageIds || []).length ? '<span class="chip">🖼️ com figura</span>' : ''}</div>
-          ${(q.imageIds || []).map((id) => `<img class="q-fig" data-img="${id}" data-act="zoom-img" data-img-id="${id}" alt="Figura da questão" title="Clique para ampliar">`).join('')}
+          <div class="q-meta"><span class="chip">Questão ${ses.idx + 1} de ${ses.items.length}</span><span class="chip">${['', 'Fácil', 'Média', 'Difícil'][q.difficulty || 2]}</span>${ses.useImages !== false && (q.imageIds || []).length ? '<span class="chip">🖼️ com figura</span>' : ''}</div>
+          ${(ses.useImages === false ? [] : (q.imageIds || [])).map((id) => `<img class="q-fig" data-img="${id}" data-act="zoom-img" data-img-id="${id}" alt="Figura da questão" title="Clique para ampliar">`).join('')}
           <div class="q-stem">${esc(q.stem)}</div>
           <div class="opts">${opts}</div>
           ${it.pending != null && !it.a ? `<div class="conf"><b>Quão seguro você está da letra ${Q.LETTERS[it.pending]}?</b><div class="muted" style="margin:4px 0 12px;font-size:.88rem">Seja honesto: chutes e respostas rápidas demais não contam como domínio.</div>

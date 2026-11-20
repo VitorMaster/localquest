@@ -9,7 +9,7 @@
 3. ANTI-CHUTE: as 4 alternativas devem ter tamanho parecido. A correta NÃO pode ser sistematicamente a maior (em cerca de metade das questões ela deve ser menor ou igual às demais). Nada de "todas as anteriores", "nenhuma das anteriores", "ambas" nem termos absolutos só nas erradas (sempre/nunca/apenas).
 4. Distratores plausíveis: erros comuns, conceitos vizinhos do mesmo slide ou de slides próximos, valores trocados. Nada absurdo.
 5. Cada questão cita o(s) slide(s) de origem em "slides". Varie o nível: 1 (lembrar), 2 (compreender), 3 (aplicar/caso clínico curto).
-6. Se uma figura do slide for NECESSÁRIA para raciocinar (gráfico, esquema, imagem), use "usa_imagem_do_slide": <nº do slide> e escreva o enunciado remetendo à figura ("Observe a figura…"). Caso contrário, use null. Nunca peça figura que não exista.
+6. Use figura com MODERAÇÃO: em no máximo ~15% das questões, e só quando a imagem for indispensável ao aprendizado (interpretar gráfico, esquema, anatomia, sequência visual). Se a questão puder ser respondida só pelo texto, use null. Quando indispensável, use "usa_imagem_do_slide": <nº do slide> e escreva o enunciado remetendo à figura ("Observe a figura…"). Caso contrário, use null. Nunca peça figura que não exista.
 7. Inclua "explicacao" curta dizendo por que a correta está certa e, se útil, por que uma errada tenta enganar.
 8. A letra da correta pode ser qualquer uma (o aplicativo embaralha depois).`;
 

@@ -39,6 +39,10 @@
     `<span class="chip">🎓 ${esc(m.curso)}</span><span class="chip">📅 ${esc(m.periodo)}</span><span class="chip">📘 ${esc(m.materia)}</span>`;
 
   /* ---------- imagens ---------- */
+  V.imgSwitch = () => {
+    const on = S().settings.useImages !== false;
+    return `<button class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" data-act="toggle-images" title="Usar imagens nas questões"><i></i><span>${on ? 'Imagens: ligadas' : 'Imagens: desligadas'}</span></button>`;
+  };
   V.img = (id, cls = '', extra = '') => `<img data-img="${id}" class="${cls}" alt="" ${extra}>`;
   V.zoom = (id, caption = '') => {
     const m = Q.modal(`<img class="zoom" data-img="${id}" alt="">${caption ? `<p class="muted" style="text-align:center;margin-top:12px">${esc(caption)}</p>` : ''}`, { cls: 'wide' });
@@ -109,6 +113,11 @@
 
   /* ---------- delegação de eventos comuns ---------- */
   V.common = {
+    'toggle-images': () => {
+      S().settings.useImages = S().settings.useImages === false;
+      Q.Store.save();
+      Q.App.refresh();
+    },
     'open-topic': (el) => V.openTopic(el.dataset.m, el.dataset.t),
     'zoom-img': (el) => V.zoom(el.dataset.img, el.dataset.cap),
     'clear-filter': () => {

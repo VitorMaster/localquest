@@ -35,7 +35,7 @@
     if (name === 'prova') { bar.innerHTML = ''; bar.style.display = 'none'; return; }
     bar.style.display = '';
     bar.innerHTML = NO_FILTER.has(name) ? '<div class="grow"></div>' : `${V.filtersBar()}<div class="grow"></div>`;
-    bar.innerHTML += `<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
+    bar.innerHTML += `${V.imgSwitch()}<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
   }
 
   App.render = (keepScroll) => {
