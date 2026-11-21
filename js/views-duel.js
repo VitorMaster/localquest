@@ -116,9 +116,11 @@
       return `<button class="kt-o ${cls}" data-act="du-pick" data-c="${i}" ${o.lock ? 'disabled' : ''}><span class="kt-l">${Q.LETTERS[i]}</span><span>${esc(t)}</span></button>`;
     }).join('')}</div>`;
 
+  const offlineNote = () => `<div class="card"><b>Esta parte precisa do link online compartilhado.</b><p class="muted">Agenda, criação e disputas com código usam o banco online (abra o Localquest pelo link compartilhado, com sua conta). Fora dele, use a <b>Sala presencial</b> (aba ao lado) ou veja a demonstração.</p><button class="btn" data-act="du-demo">🎮 Demonstração ao vivo com bots</button></div>`;
+
   /* ====================== AGENDA / CRIAR / ENTRAR ====================== */
   const visible = () =>
-    Object.values(duels).filter((d) => d.host === be.id || myGroups().includes(d.group) || playersOf(d.code).some((p) => p.uid === be.id) || demoMode);
+    !be ? [] : Object.values(duels).filter((d) => d.host === be.id || myGroups().includes(d.group) || playersOf(d.code).some((p) => p.uid === be.id) || demoMode);
 
   const statusBadge = (d) => {
     const s = D.status(d);
@@ -175,7 +177,7 @@
   const homeHTML = () => `
     <div class="page-h"><div><div class="eyebrow">Disputas</div><h1>Estudar com prazer, subir no ranking</h1><p>Responda em casa na sua hora ou entre numa sala ao vivo. Vence quem acerta mais; a rapidez desempata.</p></div></div>
     ${nick() ? '' : `<div class="card mb"><b>Escolha seu nome para aparecer nas disputas</b><div class="row gap mt-s"><input type="text" id="du-nick" placeholder="Seu nome" maxlength="30" style="max-width:300px"><button class="btn primary" data-act="du-nick">Salvar</button></div></div>`}
-    <div class="seg mb">${[['agenda', '📅 Agenda'], ['criar', '➕ Criar'], ['entrar', '🔑 Entrar com código']].map(([k, l]) => `<button data-act="du-tab" data-k="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="seg mb">${[['agenda', '📅 Agenda'], ['criar', '➕ Criar'], ['entrar', '🔑 Entrar com código'], ['sala', '📡 Sala presencial']].map(([k, l]) => `<button data-act="du-tab" data-k="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div id="du-body"></div>`;
 
   /* ====================== DETALHE ====================== */
@@ -221,6 +223,8 @@
     if (st.phase === 'lobby')
       return `<div class="card du-lobby"><div class="eyebrow">Sala aberta</div><div class="du-code">${d.code}</div><p class="muted">Compartilhe o código. Quem entrar aparece abaixo.</p>
         <div class="du-chips">${pl.map((p) => `<span class="chip ${p.uid === be.id ? 'on' : ''}">${esc(p.nick)}</span>`).join('') || '<span class="muted">Ninguém entrou ainda…</span>'}</div>
+        ${be.room && be.room.state && be.room.state.lost ? '<div class="verdict todo mt"><span class="em">📶</span><div><b>Conexão perdida</b><br><small>Volte ao Disputas e entre na sala de novo.</small></div></div>' : ''}
+        ${be.room && be.room.role === 'host' ? `<div class="row gap wrap mt" style="justify-content:center"><button class="btn" data-act="rm-invite">➕ Adicionar participante (QR)</button><span class="muted">${be.room.host.connected()} aparelho(s) conectado(s)</span></div>` : ''}
         <div class="row gap wrap mt" style="justify-content:center">${joined ? '' : '<button class="btn primary lg" data-act="du-joinlive">⚡ Entrar na sala</button>'}${isHost ? `<button class="btn primary lg" data-act="du-start" ${pl.length ? '' : 'disabled'}>▶ Iniciar (${d.questions.length} questões)</button>` : joined ? '<span class="muted">Aguardando o anfitrião iniciar…</span>' : ''}</div></div>`;
     if (st.phase === 'done')
       return `<div class="card"><h2 style="text-align:center">🏁 Resultado final</h2>${podium(rowsAll)}${boardHTML(d, rowsAll)}${isHost ? '' : ''}</div>`;
@@ -251,7 +255,8 @@
   const paintHome = () => {
     const b = Q.$('#du-body');
     if (!b) return;
-    b.innerHTML = tab === 'agenda' ? agendaHTML() : tab === 'criar' ? createHTML() : joinHTML();
+    if (!be && tab !== 'sala') { b.innerHTML = offlineNote(); Q.applyTips && Q.applyTips(b); return; }
+    b.innerHTML = tab === 'agenda' ? agendaHTML() : tab === 'criar' ? createHTML() : tab === 'sala' ? Q.Room.html() : joinHTML();
     Q.Store.hydrateImages(b);
     Q.applyTips && Q.applyTips(b);
   };
@@ -346,8 +351,11 @@
       if (!demoMode || !be) { stopSubs(); be = await dbBackend(); }
       if (!Q.$('#du-root')) return;
       if (!be) {
-        Q.$('#du-root').innerHTML = `<div class="page-h"><div><div class="eyebrow">Disputas</div><h1>Estudar com prazer, subir no ranking</h1></div></div>
-          <div class="card"><b>As disputas entre pessoas precisam do link online compartilhado.</b><p class="muted">Abra o Localquest pelo link compartilhado, entre com sua conta e peça acesso de colaborador para criar e responder. Enquanto isso, veja como funciona:</p><button class="btn primary" data-act="du-demo">🎮 Demonstração ao vivo com bots</button></div>`;
+        // sem o banco compartilhado: só a Sala presencial e a demonstração funcionam
+        if (cur) { Q.go('#/disputas'); return; }
+        if (tab !== 'sala') tab = 'sala';
+        Q.$('#du-root').innerHTML = homeHTML();
+        paintHome();
         return;
       }
       startSubs();
@@ -367,9 +375,10 @@
     unmount() {
       clearInterval(tickId); clearInterval(agendaId); stopSubs();
       if (keyH) document.removeEventListener('keydown', keyH); keyH = null;
-      if (demoMode) { demoMode = false; be = null; duels = {}; docs = []; }
+      if (demoMode) { demoMode = false; if (be && be.close) be.close(); be = null; duels = {}; docs = []; }
     },
     act: {
+      ...Q.Room.act,
       'du-tab': (el) => { tab = el.dataset.k; Q.App.refresh(); },
       'du-nick': () => { const v = Q.$('#du-nick').value.trim(); if (v.length < 2) return Q.toast('Escolha um nome com pelo menos 2 letras.', 'warn'); S().settings.nick = v; Q.Store.save(); Q.App.refresh(); },
       'du-copy': async (el) => Q.toast((await Q.copy(el.dataset.code)) ? 'Código copiado: ' + el.dataset.code : 'Anote o código: ' + el.dataset.code, 'good'),
@@ -408,10 +417,9 @@
         const mats = S().materials.filter((m) => Q.Store.questionsOf(m.id).length);
         if (!mats.length) return Q.toast('Carregue o exemplo ou envie um material para a demonstração.', 'warn');
         if (!nick()) { S().settings.nick = 'Você'; }
-        stopSubs(); demoMode = true; be = localBackend(); duels = {}; docs = [];
+        Q.Views.duel._useBackend(localBackend());
         const d = await D.build({ title: 'Demonstração ao vivo', kind: 'live', materialIds: mats.map((m) => m.id), n: Math.min(6, 99), tsec: 15, group: 'DEMO', host: be.id, hostNick: nick() });
         await be.saveDuel(d); await be.join(d.code, nick());
-        startSubs();
         Q.go('#/disputas/' + d.code);
       },
       'du-joinlive': async () => { if (!nick()) return Q.toast('Escolha seu nome primeiro (aba Agenda).', 'warn'); await be.join(cur, nick()); },
@@ -436,6 +444,12 @@
         run = { i: run.i + 1, pick: null, fb: false, t0: Date.now(), res: run.res };
         paintDetail();
       },
+    },
+    /** Usado pela Sala presencial e pela demonstração: troca o backend e mantém a conexão entre telas. */
+    _useBackend(b) {
+      stopSubs(); if (be && be.close && be !== b) be.close();
+      demoMode = true; be = b; duels = {}; docs = [];
+      startSubs();
     },
     async _del(code) {
       if (!window.claude) return;

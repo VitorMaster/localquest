@@ -66,6 +66,7 @@
     'du-joinlive': 'Entra na sala para participar.', 'du-start': 'Inicia a disputa: a primeira questão aparece para todos.', 'du-reveal': 'Encerra o tempo agora e mostra a resposta certa.',
     'du-nextlive': 'Avança para a próxima questão (ou mostra o pódio na última).', 'du-pick': 'Marca esta alternativa. Atalho: teclas A, B, C ou D.',
     'du-run': 'Começa (ou continua) a responder esta disputa.', 'du-next': 'Vai para a próxima questão.',
+    'rm-open': 'Abre a sala presencial: você vira o anfitrião e convida os colegas por QR.', 'rm-join': 'Entra na sala de um anfitrião escaneando o QR dele.', 'rm-invite': 'Gera um QR para um novo colega entrar na sala.',
     'rk-join': 'Entra em um grupo de estudo com o código recebido.',
     'rk-create': 'Cria um grupo de estudo e gera o código para convidar colegas.',
     'rk-leave': 'Sai deste grupo de estudo.',

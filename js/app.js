@@ -98,8 +98,8 @@
     App.applyTheme();
     if (!location.hash) location.hash = '#/inicio';
     App.render(false);
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      // sem service worker por ora (app 100% estático); reservado para modo offline
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('sw.js').catch(() => {}); // guarda o app para uso offline (não existe no link do claude.ai)
     }
   })();
 })();
