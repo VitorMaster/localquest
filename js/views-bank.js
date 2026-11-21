@@ -21,9 +21,10 @@
       <div class="field"><label>Slides de origem (obrigatório para o mapa de cobertura)</label><div style="max-height:150px;overflow:auto;padding:8px 12px;border:1px solid var(--line);border-radius:12px">${topicsHtml}</div></div>
       <div class="field"><label>Enunciado</label><textarea id="q-stem" rows="3" placeholder="Escreva a pergunta com base apenas no que está no slide">${esc(ex ? ex.stem : '')}</textarea></div>
       <div class="field"><label>Alternativas — marque a correta</label>
-        ${[0, 1, 2, 3].map((i) => `<div class="opt-edit"><input type="radio" name="correct" value="${i}" ${ex && ex.correct === i ? 'checked' : ''} aria-label="Alternativa ${Q.LETTERS[i]} correta"><input type="text" class="q-opt" data-i="${i}" placeholder="Alternativa ${Q.LETTERS[i]}" value="${esc(ex ? ex.options[i] : '')}"></div>`).join('')}
+        ${[0, 1, 2, 3].map((i) => `<div class="opt-edit"><input type="radio" name="correct" value="${i}" ${ex && ex.correct === i ? 'checked' : ''} aria-label="Alternativa ${Q.LETTERS[i]} correta"><input type="text" class="q-opt" data-i="${i}" placeholder="Alternativa ${Q.LETTERS[i]}" value="${esc(ex ? ex.options[i] : '')}"></div>
+          <div class="opt-edit" style="margin:-4px 0 10px"><span></span><input type="text" class="q-why" data-i="${i}" placeholder="Por que a ${Q.LETTERS[i]} NÃO é a correta (segundo o slide) — opcional" value="${esc(ex && ex.whyNot ? ex.whyNot[i] || '' : '')}" style="font-size:.85rem"></div>`).join('')}
         <small class="muted">A ordem é embaralhada a cada prova. Mantenha as 4 alternativas com tamanho parecido.</small></div>
-      <div class="field"><label>Explicação (aparece na revisão)</label><textarea id="q-exp" rows="2">${esc(ex ? ex.explanation : '')}</textarea></div>
+      <div class="field"><label>Por que a correta é a correta (trecho do slide)</label><textarea id="q-exp" rows="2">${esc(ex ? ex.explanation : '')}</textarea></div>
       <div class="field"><label>Imagem na questão (use só se for essencial para o aprendizado)</label><div id="q-imgs" class="pick-imgs"></div>
         <div class="row gap mt-s"><button class="btn sm" id="q-up">🖼️ Anexar outra imagem</button><input type="file" id="q-file" accept="image/*" hidden><small class="muted">Marque a figura apenas quando ela for necessária para raciocinar.</small></div></div>
       <div class="grid g2"><div class="field"><label>Dificuldade</label><select id="q-diff">${[1, 2, 3].map((d) => `<option value="${d}" ${(ex ? ex.difficulty : 2) === d ? 'selected' : ''}>${['', 'Fácil (lembrar)', 'Média (compreender)', 'Difícil (aplicar)'][d]}</option>`).join('')}</select></div>
@@ -78,7 +79,7 @@
       if (r.options.some((o) => !o)) return Q.toast('Preencha as 4 alternativas.', 'warn');
       if (r.correct < 0) return Q.toast('Marque a alternativa correta.', 'warn');
       const data = Object.assign(r, {
-        explanation: $('#q-exp').value.trim(), imageIds: [...chosenImgs], difficulty: +$('#q-diff').value, fixedOrder: $('#q-fixed').checked,
+        explanation: $('#q-exp').value.trim(), whyNot: Q.$$('.q-why', el).map((i, k) => (k === r.correct ? '' : i.value.trim())), imageIds: [...chosenImgs], difficulty: +$('#q-diff').value, fixedOrder: $('#q-fixed').checked,
       });
       if (ex) Object.assign(ex, data);
       else S().questions.push(Object.assign({ id: Q.uid('q'), materialId: m.id, origin: 'manual', createdAt: Date.now() }, data));
@@ -149,7 +150,7 @@
     };
   }
 
-  V.openAi = openAi;
+  V.openAi = openAi; V.openPrompt = openPrompt; V.openImport = openImport;
 
   /* ---------- tela ---------- */
   Q.Views.bank = {
@@ -172,7 +173,7 @@
       const all = S().materials;
       return `
       <div class="page-h"><div><div class="eyebrow">Banco</div><h1>Banco de questões</h1><p>Questões vinculadas aos slides — é isso que alimenta o mapa de cobertura.</p></div>
-        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="autogen">⚙️ Gerar automaticamente</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Qualidade da IA</button></div></div>
+        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><a class="btn ghost" href="#/ajustes">⚙️ Versão avançada</a></div></div>
       <div class="card mb"><div class="row between wrap gap">
         <div class="field" style="margin:0;min-width:260px"><label>Material</label><select data-change="bank-mat">${all.map((x) => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.materia)} · ${esc(x.title)}</option>`).join('')}</select></div>
         <div class="stat-row" style="margin:0;flex:1;min-width:300px"><div class="stat"><b>${qs.length}</b><small>questões</small></div><div class="stat"><b>${cov.inBank}/${cov.total}</b><small>slides com questão</small></div><div class="stat"><b style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad}</b><small>com pistas graves</small></div><div class="stat"><b>${Q.pct(qs.filter((q) => (q.imageIds || []).length).length, qs.length)}%</b><small>com imagem (ideal ≤ 20%)</small></div><div class="stat"><b>${longest}%</b><small>certa é a maior (ideal ≈ 25%)</small></div></div></div>

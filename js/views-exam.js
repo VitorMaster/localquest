@@ -2,21 +2,20 @@
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, G = Q.Guard, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;
-  const cfg = { materialIds: null, n: 0, strategy: 'misto', mode: 'prova', timer: 0 };
+  const cfg = { materialIds: null, n: 0, strategy: 'misto', timer: 0, excluded: new Set(), open: new Set() };
+
+  const effective = (ids) => E.pool(ids, [...cfg.excluded], Q.Enamed.enabled());
 
   Q.Exam = {
-    /** Um toque: gera questões que faltem e simula TODAS as questões dos materiais. */
+    /** Um toque: simula TODAS as questões dos materiais (as questões foram criadas quando o material foi inserido). */
     quick(materialIds, extra = {}) {
       const ids = materialIds.filter((id) => Q.Store.material(id));
       if (!ids.length) return Q.toast('Envie ao menos um material na Biblioteca.', 'warn');
-      Q.Autogen.ensure(ids);
-      const pool = E.pool(ids).length;
-      if (!pool) return Q.toast('Não consegui criar questões com o texto desses slides.', 'warn');
-      this.start(Object.assign({ materialIds: ids, n: pool, strategy: 'misto', mode: 'prova', useImages: S().settings.useImages !== false, filter: Object.assign({}, V.filter()) }, extra));
+      this.start(Object.assign({ materialIds: ids, n: 99999, strategy: 'misto', mode: 'estudo', useImages: S().settings.useImages !== false, enamed: Q.Enamed.enabled(), filter: Object.assign({}, V.filter()) }, extra));
     },
     start(opts) {
-      if (!opts.materialIds.length) return Q.toast('Selecione ao menos um material com questões.', 'warn');
-      const ses = E.buildSession(opts);
+      if (!opts.materialIds.length) return Q.toast('Selecione ao menos um material.', 'warn');
+      const ses = E.buildSession(Object.assign({ mode: 'estudo' }, opts));
       if (!ses.items.length) return Q.toast('Não há questões disponíveis para esse escopo.', 'warn');
       S().session = ses;
       Q.Store.saveNow();
@@ -36,60 +35,75 @@
     title: 'Simulado',
     render() {
       const mats = E.materials(V.filter());
-      Q.Autogen.ensure(S().materials.map((m) => m.id));
+      const shown = mats.length ? mats : S().materials;
       const preset = S().ui.examPreset;
       if (preset) { cfg.materialIds = preset.materialIds.filter((id) => Q.Store.material(id)); delete S().ui.examPreset; }
-      if (!cfg.materialIds) cfg.materialIds = mats.map((m) => m.id);
+      if (!cfg.materialIds) cfg.materialIds = shown.map((m) => m.id);
       cfg.materialIds = cfg.materialIds.filter((id) => Q.Store.material(id));
       const useImg = S().settings.useImages !== false;
-      const fullPool = E.pool(cfg.materialIds);
+      const fullPool = effective(cfg.materialIds);
       const imgQs = fullPool.filter((q) => (q.imageIds || []).length).length;
       const pool = useImg ? fullPool.length : fullPool.length - imgQs;
       const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
-      const allMats = S().materials;
       const sesBanner = S().session ? `<div class="card mb row between wrap gap" style="border-color:var(--accent2)"><div><b>Você tem uma prova em andamento</b><br><small class="muted">${S().session.items.filter((i) => i.a).length} de ${S().session.items.length} respondidas.</small></div><a class="btn primary" href="#/prova">▶ Continuar</a></div>` : '';
-      if (!allMats.length) return '<div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1></div></div><div class="card empty"><div class="big">📚</div><h3>Nenhum material ainda</h3><p class="muted">Envie os slides e as questões são criadas automaticamente.</p><a class="btn primary" href="#/biblioteca">Enviar slides</a></div>';
+      if (!S().materials.length) return '<div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1></div></div><div class="card empty"><div class="big">📚</div><h3>Nenhum material ainda</h3><p class="muted">Envie os slides e as questões são criadas automaticamente.</p><a class="btn primary" href="#/biblioteca">Enviar slides</a></div>';
+      const en = Q.Enamed.enabled();
+      const enQs = S().questions.filter((q) => q.origin === 'enamed' && cfg.materialIds.includes(q.materialId)).length;
+      const matCard = (m) => {
+        const cov = E.coverage(m);
+        const on = cfg.materialIds.includes(m.id);
+        const act = Q.Engine.activeTopics(m);
+        const exc = act.filter((t) => cfg.excluded.has(t.id)).length;
+        const open = cfg.open.has(m.id);
+        return `<div class="opt-card mt-s" style="flex-direction:column;gap:10px;cursor:default">
+          <div class="row gap" style="align-items:center"><input type="checkbox" data-change="cfg-mat" value="${m.id}" ${on ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent2)" aria-label="Selecionar ${esc(m.title)}">
+            <span style="flex:1"><b>${esc(m.title)}</b><small>${esc(m.materia)} · ${esc(m.periodo)} · ${esc(m.curso)}</small></span>
+            <span class="chip">${act.length - exc}/${act.length} temas</span>
+            <button class="btn sm ghost" data-act="cfg-open" data-id="${m.id}" aria-expanded="${open}">${open ? '▲ Ocultar temas' : '▼ Escolher temas'}</button></div>
+          ${open ? `<div style="padding:4px 0 2px 32px;display:grid;gap:4px">
+            <div class="row gap"><button class="btn sm" data-act="topics-all" data-id="${m.id}">Todos os temas</button><button class="btn sm ghost" data-act="topics-none" data-id="${m.id}">Nenhum</button></div>
+            ${act.map((t) => `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-change="cfg-topic" value="${t.id}" ${cfg.excluded.has(t.id) ? '' : 'checked'}><span><b>${t.n}.</b> ${esc(t.title)} <small class="muted">· ${Q.Store.questionsOf(m.id).filter((q) => (q.topicIds || []).includes(t.id) && q.origin !== 'enamed').length} questões</small></span></label>`).join('')}</div>` : ''}</div>`;
+      };
       return `${sesBanner}
       <div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1><p>Use o filtro acima para restringir curso, período e matéria.</p></div></div>
       <div class="split">
         <div class="grid" style="align-content:start">
-          <div class="card"><div class="row between wrap gap"><h3 style="margin:0">1 · Materiais <span class="sub">${cfg.materialIds.length} de ${(mats.length ? mats : allMats).length} selecionado(s)</span></h3>
+          <div class="card"><div class="row between wrap gap"><h3 style="margin:0">1 · Materiais e temas <span class="sub">${cfg.materialIds.length} de ${shown.length} material(is)</span></h3>
               <div class="row gap"><button class="btn sm" data-act="mat-all">✔ Selecionar todos</button><button class="btn sm ghost" data-act="mat-none">Limpar</button></div></div>
-            ${(mats.length ? mats : allMats).map((m) => { const cov = E.coverage(m); return `<label class="opt-card mt-s" style="align-items:center"><input type="checkbox" data-change="cfg-mat" value="${m.id}" ${cfg.materialIds.includes(m.id) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent2)">
-              <span style="flex:1"><b>${esc(m.title)}</b><small>${esc(m.materia)} · ${esc(m.periodo)} · ${esc(m.curso)}</small></span><span class="chip">${cov.questions} questões</span><span class="chip">${Math.round(cov.usage * 100)}% cobertos</span></label>`; }).join('')}</div>
-          <div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🖼️ Usar imagens nas questões</h3><small class="muted">${useImg ? `Ligado: só ${imgQs} questão(ões) do banco levam figura, e no máximo ~1 a cada 4 na prova.` : `Desligado: ${imgQs} questão(ões) que dependem de figura ficam de fora desta prova.`}</small></div>${V.imgSwitch()}</div></div>
+            <p class="muted mt-s" style="margin-bottom:0"><small>Marque os materiais e, se quiser, abra “Escolher temas” para tirar slides específicos da prova.${cfg.excluded.size ? ` ${cfg.excluded.size} tema(s) fora.` : ''}</small></p>
+            ${shown.map(matCard).join('')}</div>
+          <div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🖼️ Usar imagens nas questões</h3><small class="muted">${useImg ? `Ligado: ${imgQs} questão(ões) levam figura, no máximo ~1 a cada 4 na prova.` : `Desligado: ${imgQs} questão(ões) que dependem de figura ficam de fora.`}</small></div>${V.imgSwitch()}</div></div>
+          ${en ? `<div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🎓 Questões ENAMED</h3><small class="muted">${enQs ? `${enQs} questão(ões) do ENAMED vinculadas aos seus temas entram na prova (até ~1 a cada 4).` : 'Nenhuma questão ENAMED vinculada ainda. Importe o caderno e o gabarito oficiais em Ajustes → Versão avançada.'}</small></div>${V.enamedSwitch()}</div></div>` : ''}
           <div class="card"><h3>2 · Quantidade</h3><div class="seg">${[0, 5, 10, 15, 20, 30, 50].map((v) => `<button data-act="cfg-n" data-v="${v}" class="${cfg.n === v ? 'on' : ''}">${v === 0 ? 'Todas' : v}</button>`).join('')}</div>
-            <p class="muted mt-s">${pool ? `${n} de ${pool} questões disponíveis.` : 'Nenhuma questão no escopo.'}${cfg.n > pool && pool ? ' (o banco tem menos questões que o pedido)' : ''}</p></div>
-          <div class="card"><h3>3 · Estratégia</h3><div class="grid g2">${STRATS.map(([k, em, t, d]) => `<button class="opt-card ${cfg.strategy === k ? 'on' : ''}" data-act="cfg-strat" data-v="${k}"><span class="em">${em}</span><span><b>${t}</b><small class="muted">${d}</small></span></button>`).join('')}</div></div>
-          <div class="card"><h3>4 · Modo</h3><div class="grid g2">
-            <button class="opt-card ${cfg.mode === 'prova' ? 'on' : ''}" data-act="cfg-mode" data-v="prova"><span class="em">📝</span><span><b>Prova</b><small class="muted">Respostas definitivas; gabarito e explicações só no final.</small></span></button>
-            <button class="opt-card ${cfg.mode === 'estudo' ? 'on' : ''}" data-act="cfg-mode" data-v="estudo"><span class="em">📖</span><span><b>Estudo</b><small class="muted">Feedback e explicação logo após cada resposta.</small></span></button></div>
+            <p class="muted mt-s">${pool ? `${n} de ${pool} questões disponíveis.` : 'Nenhuma questão no escopo.'}</p></div>
+          <div class="card"><h3>3 · Estratégia</h3><div class="grid g2">${STRATS.map(([k, em, t, d]) => `<button class="opt-card ${cfg.strategy === k ? 'on' : ''}" data-act="cfg-strat" data-v="${k}"><span class="em">${em}</span><span><b>${t}</b><small class="muted">${d}</small></span></button>`).join('')}</div>
             <div class="mt-s"><span class="lbl">Tempo</span> <div class="seg" style="margin-left:8px">${[[0, 'Sem limite'], [1.5, '1,5 min/questão'], [1, '1 min/questão']].map(([v, l]) => `<button data-act="cfg-timer" data-v="${v}" class="${cfg.timer === v ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
         </div>
         <div class="grid" style="align-content:start;position:sticky;top:80px">
           <div class="card"><h3>🛡️ Escudo anti-chute ativo</h3>
-            <div class="insight"><span class="em">🔀</span><div><b>Gabarito balanceado</b><small class="muted">Letras certas distribuídas por igual; no máximo ${S().settings.maxRun || 2} iguais seguidas; sem escadas (A-B-C) nem alternâncias (A-B-A-B).</small></div></div>
+            <div class="insight"><span class="em">🔀</span><div><b>Gabarito balanceado</b><small class="muted">Letras certas distribuídas por igual; no máximo ${S().settings.maxRun || 2} iguais seguidas; sem escadas nem alternâncias.</small></div></div>
             <div class="insight"><span class="em">📏</span><div><b>Sem “a maior é a certa”</b><small class="muted">O teto de questões em que a correta é a mais longa fica no nível do acaso.</small></div></div>
-            <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Certeza, dúvida ou chute. Chutes e respostas rápidas demais não contam como domínio.</small></div></div>
-            <div class="insight"><span class="em">🔁</span><div><b>Letras embaralhadas</b><small class="muted">As alternativas mudam de posição a cada prova — decorar “a letra” não funciona.</small></div></div></div>
+            <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Chutes e respostas rápidas demais não contam como domínio.</small></div></div></div>
           <button class="btn primary lg" data-act="start" ${pool ? '' : 'disabled'}>▶ Simular ${pool ? n + ' questões' : ''}</button>
         </div>
       </div>`;
     },
     act: {
-      'mat-all': () => { cfg.materialIds = (E.materials(V.filter()).length ? E.materials(V.filter()) : S().materials).map((m) => m.id); Q.App.refresh(); },
+      'mat-all': () => { cfg.materialIds = (E.materials(V.filter()).length ? E.materials(V.filter()) : S().materials).map((m) => m.id); cfg.excluded.clear(); Q.App.refresh(); },
       'mat-none': () => { cfg.materialIds = []; Q.App.refresh(); },
+      'cfg-open': (el) => { cfg.open.has(el.dataset.id) ? cfg.open.delete(el.dataset.id) : cfg.open.add(el.dataset.id); Q.App.refresh(); },
+      'topics-all': (el) => { E.activeTopics(Q.Store.material(el.dataset.id)).forEach((t) => cfg.excluded.delete(t.id)); Q.App.refresh(); },
+      'topics-none': (el) => { E.activeTopics(Q.Store.material(el.dataset.id)).forEach((t) => cfg.excluded.add(t.id)); Q.App.refresh(); },
       'cfg-n': (el) => { cfg.n = +el.dataset.v; Q.App.refresh(); },
       'cfg-strat': (el) => { cfg.strategy = el.dataset.v; Q.App.refresh(); },
-      'cfg-mode': (el) => { cfg.mode = el.dataset.v; Q.App.refresh(); },
       'cfg-timer': (el) => { cfg.timer = +el.dataset.v; Q.App.refresh(); },
       start: async () => {
         if (S().session && !(await Q.confirm('Há uma prova em andamento. Iniciar outra descarta a atual. Continuar?', 'Descartar e iniciar'))) return;
         const useImg = S().settings.useImages !== false;
-        const fp = E.pool(cfg.materialIds);
+        const fp = effective(cfg.materialIds);
         const pool = useImg ? fp.length : fp.filter((q) => !(q.imageIds || []).length).length;
         const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
-        Q.Exam.start({ useImages: useImg, materialIds: cfg.materialIds, n, strategy: cfg.strategy, mode: cfg.mode, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
+        Q.Exam.start({ useImages: useImg, enamed: Q.Enamed.enabled(), excludeTopicIds: [...cfg.excluded], materialIds: cfg.materialIds, n, strategy: cfg.strategy, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
       },
     },
     change: {
@@ -99,6 +113,7 @@
         cfg.materialIds = [...s];
         Q.App.refresh();
       },
+      'cfg-topic': (el) => { el.checked ? cfg.excluded.delete(el.value) : cfg.excluded.add(el.value); Q.App.refresh(); },
     },
   };
 
@@ -115,6 +130,7 @@
     if (!at.answers.length) { Q.Store.save(); Q.toast('Nenhuma resposta registrada — prova descartada.'); return Q.go('#/simulado'); }
     S().attempts.push(at);
     Q.Store.saveNow();
+    if (Q.Rank) Q.Rank.autoSync();
     if (auto) Q.toast('Tempo esgotado — prova encerrada.', 'warn');
     Q.go('#/resultado/' + at.id);
   }
@@ -133,8 +149,7 @@
     Q.Store.save();
     const warn = E.liveWarning(ses);
     if (warn) Q.toast(warn, 'warn', 6000);
-    if (ses.mode === 'estudo') return Q.App.refresh();
-    next();
+    Q.App.refresh();
   }
   function next() {
     const ses = S().session;
@@ -154,33 +169,33 @@
       const q = Q.Store.question(it.qid);
       if (!q) { ses.items.splice(ses.idx, 1); if (!ses.items.length) { S().session = null; return this.render(); } ses.idx = Math.min(ses.idx, ses.items.length - 1); return this.render(); }
       if (!it.t0 && !it.a) it.t0 = Date.now();
-      const m = Q.Store.material(q.materialId);
-      const study = ses.mode === 'estudo';
-      const segs = ses.items.map((x, i) => `<i class="${i === ses.idx ? 'cur' : x.a ? (study ? (Q.Store.question(x.qid) && x.order[x.a.chosenPos] === Q.Store.question(x.qid).correct ? 'ok' : 'no') : 'done') : ''}"></i>`).join('');
+      const study = true; // feedback com justificativa logo após marcar
+      const segs = ses.items.map((x, i) => `<i class="${i === ses.idx ? 'cur' : x.a ? (Q.Store.question(x.qid) && x.order[x.a.chosenPos] === Q.Store.question(x.qid).correct ? 'ok' : 'no') : ''}"></i>`).join('');
       const opts = it.order.map((o, p) => {
         let cls = '';
-        if (it.a && study) cls = o === q.correct ? 'right' : p === it.a.chosenPos ? 'wrong' : '';
+        if (it.a) cls = o === q.correct ? 'right' : p === it.a.chosenPos ? 'wrong' : '';
         else if (it.pending === p) cls = 'sel';
         return `<button class="opt ${cls}" data-act="pick" data-pos="${p}" ${it.a ? 'disabled' : ''}><span class="lt">${Q.LETTERS[p]}</span><span>${esc(q.options[o])}</span></button>`;
       }).join('');
       const correct = it.a && it.order[it.a.chosenPos] === q.correct;
-      const letters = ses.items.filter((x) => x.a).map((x) => Q.LETTERS[x.a.chosenPos]).join('');
+      const chosenOrig = it.a ? it.order[it.a.chosenPos] : -1;
+      const why = it.a && !correct ? E.whyNot(q, chosenOrig) : '';
+      const refs = (q.topicIds || []).map((tid) => { const t = Q.Store.topic(q.materialId, tid); return t ? `<button class="chip" data-act="open-topic" data-m="${q.materialId}" data-t="${t.id}">📎 Slide ${t.n} — ${esc(t.title)}</button>` : ''; }).join(' ');
       return `<div class="exam">
-        <div class="row between wrap gap" style="margin-bottom:10px"><div><span class="eyebrow">${study ? 'Modo estudo' : 'Modo prova'}</span><div class="muted">${esc(m ? m.materia + ' · ' + m.title : '')}</div></div>
+        <div class="row between gap" style="margin-bottom:10px;min-height:32px"><div class="segs" style="flex:1;margin:0" aria-label="Progresso">${segs}</div>
           <div class="row gap">${ses.timerMin ? '<span class="timer" id="timer">--:--</span>' : ''}<button class="btn sm ghost" data-act="quit">Encerrar</button></div></div>
-        <div class="segs" aria-label="Progresso">${segs}</div>
         <div class="card q-card">
-          <div class="q-meta"><span class="chip">Questão ${ses.idx + 1} de ${ses.items.length}</span><span class="chip">${['', 'Fácil', 'Média', 'Difícil'][q.difficulty || 2]}</span>${ses.useImages !== false && (q.imageIds || []).length ? '<span class="chip">🖼️ com figura</span>' : ''}</div>
-          ${(ses.useImages === false ? [] : (q.imageIds || [])).map((id) => `<img class="q-fig" data-img="${id}" data-act="zoom-img" data-img-id="${id}" alt="Figura da questão" title="Clique para ampliar">`).join('')}
+          ${(ses.useImages === false ? [] : (q.imageIds || [])).map((id) => `<img class="q-fig" data-img="${id}" data-act="zoom-img" alt="Figura da questão">`).join('')}
           <div class="q-stem">${esc(q.stem)}</div>
           <div class="opts">${opts}</div>
-          ${it.pending != null && !it.a ? `<div class="conf"><b>Quão seguro você está da letra ${Q.LETTERS[it.pending]}?</b><div class="muted" style="margin:4px 0 12px;font-size:.88rem">Seja honesto: chutes e respostas rápidas demais não contam como domínio.</div>
-            <div class="row"><button class="btn" data-act="conf" data-c="sure">✅ Tenho certeza<small>tecla 1</small></button><button class="btn" data-act="conf" data-c="doubt">🤔 Tenho dúvida<small>tecla 2</small></button><button class="btn" data-act="conf" data-c="guess">🎲 Foi chute<small>tecla 3</small></button></div></div>` : ''}
-          ${it.a && study ? `<div class="explain"><b>${correct ? '✅ Correto!' : '❌ Não foi dessa vez.'}</b>${correct ? '' : ` A correta é a letra <b>${Q.LETTERS[it.order.indexOf(q.correct)]}</b>.`}<div class="mt-s">${esc(q.explanation || 'Sem explicação cadastrada.')}</div>
-            <div class="mt-s muted" style="font-size:.85rem">${(q.topicIds || []).map((tid) => { const t = Q.Store.topic(q.materialId, tid); return t ? `📎 Slide ${t.n} — ${esc(t.title)}` : ''; }).join(' · ')}</div>
+          ${it.pending != null && !it.a ? `<div class="conf"><b>Quão seguro você está da letra ${Q.LETTERS[it.pending]}?</b>
+            <div class="row" style="margin-top:12px"><button class="btn" data-act="conf" data-c="sure">✅ Certeza<small>tecla 1</small></button><button class="btn" data-act="conf" data-c="doubt">🤔 Dúvida<small>tecla 2</small></button><button class="btn" data-act="conf" data-c="guess">🎲 Chute<small>tecla 3</small></button></div></div>` : ''}
+          ${it.a ? `<div class="explain"><b>${correct ? '✅ Você acertou' : '❌ Você errou'}</b>
+            ${correct ? `<div class="mt-s"><b>Por que está certo:</b> ${esc(q.explanation || 'Conforme o material.')}</div>`
+              : `<div class="mt-s"><b>Por que a letra ${Q.LETTERS[it.a.chosenPos]} não é a correta:</b> ${esc(why)}</div><div class="mt-s"><b>Por que a letra ${Q.LETTERS[it.order.indexOf(q.correct)]} é a correta:</b> ${esc(q.explanation || 'Conforme o material.')}</div>`}
+            <div class="row wrap gap mt-s">${refs}</div>
             <div class="row end mt"><button class="btn primary" data-act="next">${ses.idx >= ses.items.length - 1 ? 'Ver resultado' : 'Próxima →'} <span class="kbd">Enter</span></button></div></div>` : ''}
         </div>
-        <div class="row between wrap gap mt-s shield"><span>🛡️ Gabarito balanceado · respostas são definitivas${study ? '' : ' · sem voltar'}</span><span>${letters ? 'Suas letras: <b style="color:var(--text);letter-spacing:.1em">' + letters + '</b>' : ''}</span></div>
       </div>`;
     },
     mount() {
@@ -303,6 +318,7 @@
       <div style="font-weight:600">${esc(q.stem)}</div>
       ${(q.imageIds || []).map((id) => `<img data-img="${id}" alt="Figura">`).join('')}
       <div class="opts mt-s">${a.order.map((o, p) => `<div class="opt ${o === q.correct ? 'right' : p === a.chosenPos ? 'wrong' : ''}" style="padding:9px 12px"><span class="lt" style="width:30px;height:30px;font-size:.85rem">${Q.LETTERS[p]}</span><span>${esc(q.options[o])}${p === a.chosenPos ? ' <small>(sua resposta)</small>' : ''}</span></div>`).join('')}</div>
-      ${q.explanation ? `<div class="explain"><b>Por quê:</b> ${esc(q.explanation)}</div>` : ''}</div>`;
+      ${!a.correct ? `<div class="explain"><b>Por que a sua (${Q.LETTERS[a.chosenPos]}) não é a correta:</b> ${esc(E.whyNot(q, a.chosenOrig))}</div>` : ''}
+      ${q.explanation ? `<div class="explain"><b>Por que a correta é a correta:</b> ${esc(q.explanation)}</div>` : ''}</div>`;
   }
 })();

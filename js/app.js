@@ -9,9 +9,10 @@
     ['banco', '📝', 'Questões'],
     ['simulado', '⚡', 'Simulado'],
     ['desempenho', '📊', 'Desempenho'],
+    ['ranking', '🏆', 'Ranking'],
     ['ajustes', '⚙️', 'Ajustes'],
   ];
-  const ROUTES = { inicio: 'home', biblioteca: 'library', banco: 'bank', simulado: 'exam', prova: 'run', resultado: 'result', desempenho: 'perf', ajustes: 'settings' };
+  const ROUTES = { inicio: 'home', biblioteca: 'library', banco: 'bank', simulado: 'exam', prova: 'run', resultado: 'result', desempenho: 'perf', ranking: 'rank', ajustes: 'settings' };
   const NO_FILTER = new Set(['prova', 'resultado', 'ajustes', 'banco']);
 
   const App = (Q.App = { cur: null, view: null });
@@ -35,7 +36,7 @@
     if (name === 'prova') { bar.innerHTML = ''; bar.style.display = 'none'; return; }
     bar.style.display = '';
     bar.innerHTML = NO_FILTER.has(name) ? '<div class="grow"></div>' : `${V.filtersBar()}<div class="grow"></div>`;
-    bar.innerHTML += `${V.imgSwitch()}<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
+    bar.innerHTML += `${V.enamedSwitch()}${V.imgSwitch()}<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
   }
 
   App.render = (keepScroll) => {
@@ -52,6 +53,7 @@
     root.innerHTML = view.render(params);
     Q.Store.hydrateImages(root);
     if (view.mount) view.mount(root, params);
+    if (Q.applyTips) Q.applyTips(document.body);
     document.title = `${view.title || 'Localquest'} · Localquest`;
     if (keepScroll) window.scrollTo(0, y);
     else window.scrollTo(0, 0);
@@ -83,6 +85,8 @@
     if (h) h(el, e);
   });
   window.addEventListener('hashchange', () => App.render(false));
+  window.addEventListener('online', () => App.cur && App.cur !== 'prova' && App.refresh());
+  window.addEventListener('offline', () => App.cur && App.cur !== 'prova' && App.refresh());
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { const m = Q.$$('.modal-back').pop(); if (m) m.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); }
   });

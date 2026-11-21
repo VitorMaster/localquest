@@ -216,3 +216,11 @@ code.k { font-family: ui-monospace, monospace; background: var(--card-hi); paddi
 .switch i { width: 38px; height: 22px; border-radius: 99px; background: var(--track); position: relative; transition: .2s; flex: none; }
 .switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .switch.on { border-color: var(--accent2); } .switch.on i { background: var(--grad); } .switch.on i::after { left: 19px; }
+
+.net { font-size: .8rem; } .net.up { color: var(--good); } .net.down { color: var(--bad); }
+#topbar { row-gap: 6px; }
+
+ol.steps { counter-reset: st; list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 22px; }
+ol.steps > li { counter-increment: st; position: relative; padding-left: 46px; }
+ol.steps > li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; background: var(--grad); color: var(--accent-ink); }
+ol.steps p { margin: 4px 0 10px; }

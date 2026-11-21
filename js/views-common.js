@@ -39,6 +39,11 @@
     `<span class="chip">🎓 ${esc(m.curso)}</span><span class="chip">📅 ${esc(m.periodo)}</span><span class="chip">📘 ${esc(m.materia)}</span>`;
 
   /* ---------- imagens ---------- */
+  V.enamedSwitch = () => {
+    const on = S().settings.enamed === true;
+    const net = navigator.onLine !== false;
+    return `<button class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" data-act="toggle-enamed" title="ENAMED online"><i></i><span>ENAMED: ${on ? 'ligado' : 'desligado'} <b class="net ${net ? 'up' : 'down'}" title="${net ? 'Conectado à internet' : 'Sem internet'}">●</b></span></button>`;
+  };
   V.imgSwitch = () => {
     const on = S().settings.useImages !== false;
     return `<button class="switch ${on ? 'on' : ''}" role="switch" aria-checked="${on}" data-act="toggle-images" title="Usar imagens nas questões"><i></i><span>${on ? 'Imagens: ligadas' : 'Imagens: desligadas'}</span></button>`;
@@ -107,12 +112,22 @@
       </div>
       <div class="pre" style="color:var(--muted)">${esc(t.text) || '<i>Slide sem texto.</i>'}</div>
       ${t.images.length ? `<div class="mt" style="display:grid;gap:10px">${t.images.map((i) => V.img(i.id, 'zoom')).join('')}</div>` : ''}
+      ${Q.Enamed.enabled() ? `<div class="verdict todo mt"><span class="em">🎓</span><div><b>ENAMED (online)</b><br><small>Procure questões oficiais deste tema nas provas anteriores do INEP.</small>
+        <div class="row wrap gap mt-s"><a class="btn sm" target="_blank" rel="noopener" href="${Q.Enamed.temaUrl(t.title)}">🔎 Questões ENAMED sobre este tema</a><a class="btn sm" target="_blank" rel="noopener" href="${Q.Enamed.provasUrl()}">📄 Provas e gabaritos (INEP)</a></div></div></div>` : ''}
       <div class="row end gap mt"><a class="btn" href="#/banco/${m.id}" data-close>Ver banco</a><button class="btn ghost" data-close>Fechar</button></div>`, { cls: 'wide' });
     Q.Store.hydrateImages(mod.el);
   };
 
   /* ---------- delegação de eventos comuns ---------- */
   V.common = {
+    'toggle-enamed': () => {
+      const st = S().settings;
+      st.enamed = !st.enamed;
+      if (st.enamed && navigator.onLine === false) Q.toast('Você está sem internet: os links do ENAMED só abrem quando houver conexão.', 'warn', 6000);
+      if (st.enamed) { const n = Q.Enamed.sync(); if (n) Q.toast(n + ' questão(ões) do ENAMED vinculada(s) aos seus temas.', 'good'); }
+      Q.Store.save();
+      Q.App.refresh();
+    },
     'toggle-images': () => {
       S().settings.useImages = S().settings.useImages === false;
       Q.Store.save();

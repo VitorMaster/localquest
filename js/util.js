@@ -86,6 +86,7 @@
       <button class="modal-x" data-close aria-label="Fechar">×</button>${html}</div>`;
     root.appendChild(wrap);
     requestAnimationFrame(() => wrap.classList.add('in'));
+    if (Q.applyTips) Q.applyTips(wrap);
     const close = () => {
       wrap.classList.remove('in');
       setTimeout(() => wrap.remove(), 200);

@@ -10,7 +10,7 @@
 4. Distratores plausíveis: erros comuns, conceitos vizinhos do mesmo slide ou de slides próximos, valores trocados. Nada absurdo.
 5. Cada questão cita o(s) slide(s) de origem em "slides". Varie o nível: 1 (lembrar), 2 (compreender), 3 (aplicar/caso clínico curto).
 6. Use figura com MODERAÇÃO: em no máximo ~15% das questões, e só quando a imagem for indispensável ao aprendizado (interpretar gráfico, esquema, anatomia, sequência visual). Se a questão puder ser respondida só pelo texto, use null. Quando indispensável, use "usa_imagem_do_slide": <nº do slide> e escreva o enunciado remetendo à figura ("Observe a figura…"). Caso contrário, use null. Nunca peça figura que não exista.
-7. Inclua "explicacao" curta dizendo por que a correta está certa e, se útil, por que uma errada tenta enganar.
+7. Inclua "explicacao": por que a correta está certa, citando o trecho do slide. Inclua também "justificativas": para CADA alternativa errada (use a letra como chave, na mesma ordem de "alternativas"), uma frase dizendo por que ela não é a correta, com base no que o slide afirma. Nada de dicas no enunciado.
 8. A letra da correta pode ser qualquer uma (o aplicativo embaralha depois).`;
 
   const FORMAT = `FORMATO DE SAÍDA — responda APENAS com JSON válido (sem comentários), uma lista:
@@ -21,6 +21,7 @@
     "alternativas": ["texto A", "texto B", "texto C", "texto D"],
     "correta": "B",
     "explicacao": "…",
+    "justificativas": { "A": "por que A está errada (segundo o slide)", "C": "…", "D": "…" },
     "usa_imagem_do_slide": null,
     "dificuldade": 2
   }
@@ -90,6 +91,10 @@ ${topics.map(slideBlock).join('\n\n')}`;
       if (correct < 0) return out.rejected.push({ i: idx + 1, why: 'não identifiquei qual é a correta' });
       if (existing.has(norm(stem))) return out.rejected.push({ i: idx + 1, why: 'enunciado repetido' });
 
+      const why = it.justificativas || it.whyNot || it.justificativa || null;
+      let whyNot = ['', '', '', ''];
+      if (Array.isArray(why)) whyNot = [0, 1, 2, 3].map((i) => (i === correct ? '' : String(why[i] || '')));
+      else if (why && typeof why === 'object') whyNot = [0, 1, 2, 3].map((i) => (i === correct ? '' : String(why['ABCD'[i]] || why['abcd'[i]] || '')));
       const nums = [].concat(it.slides != null ? it.slides : it.slide != null ? it.slide : []).map(Number).filter(Boolean);
       const topicIds = nums.map((n) => material.topics.find((t) => t.n === n)).filter(Boolean).map((t) => t.id);
       let imageIds = [];
@@ -100,7 +105,7 @@ ${topics.map(slideBlock).join('\n\n')}`;
       }
       const q = {
         id: Q.uid('q'), materialId: material.id, topicIds, stem, options: opts, correct,
-        explanation: String(it.explicacao || it.explanation || '').trim(), imageIds,
+        explanation: String(it.explicacao || it.explanation || '').trim(), whyNot, imageIds,
         difficulty: Q.clamp(parseInt(it.dificuldade || it.difficulty || 2, 10) || 2, 1, 3),
         fixedOrder: false, origin, createdAt: Date.now(),
       };

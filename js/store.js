@@ -9,10 +9,11 @@
   const blank = () => ({
     v: 1,
     materials: [], // {id,title,curso,periodo,materia,createdAt,source,topics:[{id,n,title,text,images:[{id,alt,kind}],ignored}]}
+    enamed: [], // banco bruto do ENAMED importado pelo usuário
     questions: [], // {id,materialId,topicIds,stem,options[4],correct,explanation,imageIds,difficulty,fixedOrder,origin}
     attempts: [], // ver engine.js
     session: null, // prova em andamento
-    settings: { theme: 'dark', apiKey: '', model: 'claude-sonnet-5-5', maxRun: 2, useImages: true, aiQuality: false },
+    settings: { theme: 'dark', apiKey: '', model: 'claude-sonnet-5-5', maxRun: 2, useImages: true, aiQuality: false, enamed: false, nick: '', groups: [] },
     ui: { filter: { curso: '', periodo: '', materia: '' } },
   });
 

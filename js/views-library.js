@@ -4,8 +4,8 @@
   const S = () => Q.Store.state;
 
   const datalists = () => {
-    const u = (k) => [...new Set(S().materials.map((m) => m[k]))].map((v) => `<option value="${esc(v)}">`).join('');
-    return `<datalist id="dl-curso">${u('curso')}</datalist><datalist id="dl-periodo">${u('periodo')}</datalist><datalist id="dl-materia">${u('materia')}</datalist>`;
+    const u = (k, extra = []) => [...new Set([...extra, ...S().materials.map((m) => m[k])])].map((v) => `<option value="${esc(v)}">`).join('');
+    return `<datalist id="dl-curso">${u('curso', Q.CURSOS || [])}</datalist><datalist id="dl-periodo">${u('periodo')}</datalist><datalist id="dl-materia">${u('materia')}</datalist>`;
   };
 
   function openUpload() {
@@ -17,8 +17,8 @@
       <div class="drop" id="drop"><div class="big">📑</div><b id="drop-t">Arraste os arquivos aqui ou clique para escolher</b><br><small class="muted">PPTX ou PDF — pode enviar vários de uma vez</small>
         <input type="file" id="file" accept=".pptx,.pdf" multiple hidden></div>
       <div class="mt grid g2">
-        <div class="field"><label>Curso</label><input type="text" id="u-curso" list="dl-curso" placeholder="Ex.: Fisioterapia" value="${esc(f.curso || '')}"></div>
-        <div class="field"><label>Período</label><input type="text" id="u-periodo" list="dl-periodo" placeholder="Ex.: 6º período" value="${esc(f.periodo || '')}"></div>
+        <div class="field"><label>Curso</label><input type="text" id="u-curso" list="dl-curso" autocomplete="off" placeholder="Comece a digitar: Fis…" value="${esc(f.curso || '')}"></div>
+        <div class="field"><label>Período (só o número)</label><input type="text" id="u-periodo" inputmode="numeric" placeholder="Ex.: 6" value="${esc(f.periodo || '')}"></div>
         <div class="field"><label>Matéria</label><input type="text" id="u-materia" list="dl-materia" placeholder="Ex.: Geriatria" value="${esc(f.materia || '')}"></div>
         <div class="field"><label>Título da aula</label><input type="text" id="u-title" placeholder="Ex.: Aula 3 — Avaliação funcional"></div>
       </div>${datalists()}
@@ -43,7 +43,7 @@
     ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
     drop.addEventListener('drop', (e) => setFile(e.dataTransfer.files));
     $('#u-go').addEventListener('click', async () => {
-      const meta = { title: $('#u-title').value.trim(), curso: $('#u-curso').value.trim(), periodo: $('#u-periodo').value.trim(), materia: $('#u-materia').value.trim() };
+      const meta = { title: $('#u-title').value.trim(), curso: $('#u-curso').value.trim(), periodo: Q.normPeriodo($('#u-periodo').value), materia: $('#u-materia').value.trim() };
       if ((files.length === 1 && !meta.title) || !meta.curso || !meta.periodo || !meta.materia) return Q.toast('Preencha curso, período e matéria' + (files.length === 1 ? ' e o título.' : '.'), 'warn');
       $('#u-go').disabled = true;
       $('#u-prog').hidden = false;
@@ -59,6 +59,7 @@
           const title = files.length === 1 ? meta.title : f.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
           const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title }), parsed);
           qn += Q.Autogen.fill(m);
+          if (Q.Enamed) Q.Enamed.sync();
           made.push(m);
           if (S().settings.aiQuality && Q.Ai.hasKey()) {
             try {
@@ -124,7 +125,7 @@
       const cov = E.coverage(m);
       return `
       <div class="page-h"><div><div class="eyebrow"><a href="#/biblioteca">← Biblioteca</a></div><h1>${esc(m.title)}</h1><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}<span class="chip">${m.source === 'pdf' ? 'PDF' : m.source === 'pptx' ? 'PPTX' : 'Exemplo'}</span></div></div>
-        <div class="row wrap gap"><a class="btn" href="#/banco/${m.id}">📝 Banco de questões (${cov.questions})</a><button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn" data-act="ai-up" data-id="${m.id}">✨ Qualidade da IA</button><button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
+        <div class="row wrap gap"><a class="btn" href="#/banco/${m.id}">📝 Banco de questões (${cov.questions})</a><button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button> <button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
       <div class="card mb">${V.coverageBlock(cov)}${V.mapLegend()}</div>
       <div class="card"><h3>Slides <span class="sub">${cov.total} ativos · desative os que não devem ser cobrados (capa, agenda, referências)</span></h3>
         ${cov.topics.map((x) => {
@@ -141,7 +142,6 @@
 
   function detailActs() {
     return {
-      'ai-up': (el) => V.openAi(Q.Store.material(el.dataset.id)),
       'tog-ign': (el) => { const t = Q.Store.topic(el.dataset.m, el.dataset.t); t.ignored = !t.ignored; Q.Store.save(); Q.App.refresh(); },
       'ren-topic': (el) => {
         const t = Q.Store.topic(el.dataset.m, el.dataset.t);
@@ -152,14 +152,14 @@
         const m = Q.Store.material(el.dataset.id);
         const mod = Q.modal(`<h3>Editar material</h3>
           <div class="field"><label>Título</label><input type="text" id="e-t" value="${esc(m.title)}"></div>
-          <div class="field"><label>Curso</label><input type="text" id="e-c" list="dl-curso" value="${esc(m.curso)}"></div>
-          <div class="field"><label>Período</label><input type="text" id="e-p" list="dl-periodo" value="${esc(m.periodo)}"></div>
+          <div class="field"><label>Curso</label><input type="text" id="e-c" autocomplete="off" list="dl-curso" value="${esc(m.curso)}"></div>
+          <div class="field"><label>Período</label><input type="text" id="e-p" inputmode="numeric" value="${esc(m.periodo)}" placeholder="Só o número, ex.: 6"></div>
           <div class="field"><label>Matéria</label><input type="text" id="e-m" list="dl-materia" value="${esc(m.materia)}"></div>${datalists()}
           <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="ok">Salvar</button></div>`, { cls: 'small' });
         Q.$('#ok', mod.el).onclick = () => {
           const g = (i) => Q.$(i, mod.el).value.trim();
           if (!g('#e-t') || !g('#e-c') || !g('#e-p') || !g('#e-m')) return Q.toast('Preencha todos os campos', 'warn');
-          Object.assign(m, { title: g('#e-t'), curso: g('#e-c'), periodo: g('#e-p'), materia: g('#e-m') });
+          Object.assign(m, { title: g('#e-t'), curso: g('#e-c'), periodo: Q.normPeriodo(g('#e-p')), materia: g('#e-m') });
           Q.Store.save(); mod.close(); Q.App.refresh();
         };
       },

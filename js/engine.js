@@ -150,10 +150,13 @@
     return h;
   };
 
-  E.pool = (materialIds) => {
+  /** exclude: ids de temas (slides) que o usuário desmarcou; enamed: inclui questões ENAMED vinculadas. */
+  E.pool = (materialIds, exclude, enamed) => {
     const ids = new Set(materialIds);
+    const ex = new Set(exclude || []);
     const valid = (q) => q.options && q.options.length === 4 && q.options.every((o) => String(o || '').trim());
-    return S().questions.filter((q) => ids.has(q.materialId) && valid(q));
+    return S().questions.filter((q) => ids.has(q.materialId) && valid(q) && (enamed || q.origin !== 'enamed') &&
+      !((q.topicIds || []).length && q.topicIds.every((t) => ex.has(t))));
   };
 
   /**
@@ -167,7 +170,7 @@
     const covBy = new Map(mats.map((m) => [m.id, E.coverage(m)]));
     const topicInfo = new Map();
     covBy.forEach((c) => c.topics.forEach((t) => topicInfo.set(t.topic.id, t)));
-    let pool = E.pool(opts.materialIds);
+    let pool = E.pool(opts.materialIds, opts.excludeTopicIds, opts.enamed);
     if (opts.onlyIds) pool = pool.filter((q) => opts.onlyIds.includes(q.id));
     const useImages = opts.useImages !== false;
     const hasImg = (q) => (q.imageIds || []).length > 0;
@@ -193,19 +196,23 @@
     // Imagens só onde há necessidade de aprendizado: no máx. ~25% da prova.
     const imgCap = Math.max(1, Math.ceil(n * 0.25));
     const chosen = [];
-    let biased = 0, imgs = 0;
+    const enCap = Math.max(1, Math.ceil(n * 0.25));
+    let biased = 0, imgs = 0, enams = 0;
     for (const q of ranked) {
       if (chosen.length >= n) break;
       if (G.isLengthBiased(q) && biased >= cap) continue;
       if (hasImg(q) && imgs >= imgCap) continue;
+      if (q.origin === 'enamed' && enams >= enCap) continue;
       if (G.isLengthBiased(q)) biased++;
       if (hasImg(q)) imgs++;
+      if (q.origin === 'enamed') enams++;
       chosen.push(q);
     }
     for (const q of ranked) {
       if (chosen.length >= n) break;
-      if (chosen.includes(q) || (hasImg(q) && imgs >= imgCap)) continue;
+      if (chosen.includes(q) || (hasImg(q) && imgs >= imgCap) || (q.origin === 'enamed' && enams >= enCap)) continue;
       if (hasImg(q)) imgs++;
+      if (q.origin === 'enamed') enams++;
       chosen.push(q);
     }
     for (const q of ranked) {
@@ -223,7 +230,7 @@
       strategy,
       scope: { materialIds: opts.materialIds.slice(), filter: opts.filter || {} },
       timerMin: opts.timerMin || 0,
-      useImages,
+      useImages, enamed: !!opts.enamed,
       idx: 0,
       items,
       key: keyIdx.map((k) => Q.LETTERS[k]).join(''),
@@ -320,6 +327,22 @@
     });
     if (!tips.length) tips.push({ icon: '🌟', title: 'Sem pontos críticos', text: 'Continue variando os materiais e refaça provas espaçadas para consolidar a memória.' });
     return { wins, tips };
+  };
+
+  /** Justificativa de uma alternativa errada, extraída do material quando a questão não traz a sua. */
+  E.whyNot = (q, optIdx) => {
+    if (q.whyNot && q.whyNot[optIdx]) return q.whyNot[optIdx];
+    const m = Q.Store.material(q.materialId);
+    const tk = (s) => new Set(String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]{4,}/g) || []);
+    const ot = tk(q.options[optIdx]);
+    let best = null;
+    if (m && ot.size) m.topics.filter((t) => !t.ignored).forEach((t) => (t.text || '').split('\n').forEach((l) => {
+      const hit = [...tk(l)].filter((w) => ot.has(w)).length;
+      if (hit >= Math.min(2, ot.size) && (!best || hit > best.hit)) best = { hit, t, l: l.trim() };
+    }));
+    if (!best) return 'Essa alternativa não corresponde ao que o material afirma sobre o assunto perguntado.';
+    const same = (q.topicIds || []).includes(best.t.id);
+    return same ? `O slide ${best.t.n} diz: “${best.l}”. Isso não responde ao que foi perguntado.` : `Esse conteúdo aparece em outro ponto do material (slide ${best.t.n}, “${best.t.title}”: “${best.l}”) e não responde ao que foi perguntado.`;
   };
 
   /* ---------- “tentativa ao vivo”: alerta de letra repetida ---------- */
