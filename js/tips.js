@@ -19,6 +19,7 @@
     'tog-ign': 'Ignora ou reativa este slide (ex.: capa, agenda). Slides ignorados não geram questões nem contam na cobertura.',
     'ren-topic': 'Renomeia este slide.',
     'edit-mat': 'Edita título, curso, período e matéria do material.',
+    'del-demo': 'Remove só os materiais de exemplo (e o histórico fictício deles).',
     'del-mat': 'Exclui o material, as questões e o histórico dele.',
     'open-topic': 'Abre o conteúdo deste slide.',
     'zoom-img': 'Amplia a imagem.',

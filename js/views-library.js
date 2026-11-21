@@ -91,7 +91,7 @@
       if (params && params[0]) return this.detail(params[0]);
       const mats = E.materials(V.filter());
       const head = `<div class="page-h"><div><div class="eyebrow">Biblioteca</div><h1>Seus materiais</h1><p>Os slides das aulas são a única fonte das questões.</p></div>
-        <div class="row wrap gap"><button class="btn primary" data-act="sim-all">▶ Simular todos</button><button class="btn" data-act="new">📤 Adicionar slides</button></div></div>`;
+        <div class="row wrap gap"><button class="btn primary" data-act="sim-all">▶ Simular todos</button>${S().materials.some((m) => m.source === 'demo') ? '<button class="btn danger" data-act="del-demo">🗑 Remover exemplos</button>' : ''}<button class="btn" data-act="new">📤 Adicionar slides</button></div></div>`;
       if (!S().materials.length) return head + `<div class="card empty"><div class="big">📚</div><h3>Nenhum material ainda</h3><p class="muted">Envie um PPTX ou PDF para começar.</p><button class="btn primary" data-act="new">Enviar slides</button> <button class="btn" data-act="demo">Ver exemplo</button></div>`;
       if (!mats.length) return head + '<div class="card empty"><p class="muted">Nenhum material corresponde ao filtro atual.</p></div>';
       return head + `<div class="grid g-auto">${mats.map((m) => {
@@ -101,7 +101,7 @@
           <div><h3><a href="#/biblioteca/${m.id}">${esc(m.title)}</a></h3><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}</div></div>
           ${imgs.length ? `<div class="thumbs">${imgs.map((i) => V.img(i.id, 'thumb')).join('')}</div>` : ''}
           <div class="stat-row"><div class="stat"><b>${cov.total}</b><small>temas (slides)</small></div><div class="stat"><b>${cov.questions}</b><small>questões</small></div><div class="stat"><b>${Math.round(cov.usage * 100)}%</b><small>cobertos</small></div></div>
-          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><a class="btn sm" href="#/banco/${m.id}">Questões</a><button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button></div></div>`;
+          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><a class="btn sm" href="#/banco/${m.id}">Questões</a><button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn sm danger" data-act="del-mat" data-id="${m.id}">🗑 Excluir</button></div></div>`;
       }).join('')}</div>`;
     },
     mount() {
@@ -114,6 +114,14 @@
       new: () => openUpload(),
       demo: async () => { await Q.Demo.load({ history: true }); Q.toast('Exemplo carregado', 'good'); Q.App.refresh(); },
       sim: (el) => Q.Exam.quick([el.dataset.id]),
+      'del-demo': async () => {
+        const demo = S().materials.filter((m) => m.source === 'demo');
+        if (await Q.confirm(`Remover ${demo.length} material(is) de exemplo, suas questões e o histórico fictício?`, 'Remover')) {
+          for (const m of demo) await Q.Store.removeMaterial(m.id);
+          Q.toast('Exemplos removidos', 'good');
+          Q.App.refresh();
+        }
+      },
       'sim-all': () => Q.Exam.quick(E.materials(V.filter()).map((m) => m.id)),
       ...detailActs(),
     },
