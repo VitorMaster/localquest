@@ -5,8 +5,8 @@
   const S = () => Q.Store.state;
   const E = (Q.Engine = {});
 
-  const CONF_W = { sure: 1, doubt: 0.6, guess: 0 };
-  E.CONF_LABEL = { sure: 'Certeza', doubt: 'Dúvida', guess: 'Chute' };
+  const CONF_W = { direct: 1, sure: 1, doubt: 0.6, guess: 0 };
+  E.CONF_LABEL = { direct: 'Resposta', sure: 'Certeza', doubt: 'Dúvida', guess: 'Chute' };
 
   /* ---------- filtros ---------- */
   E.materials = (f = {}) =>

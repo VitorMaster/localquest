@@ -33,7 +33,7 @@ Plataforma web (HTML/CSS/JS puro, sem build, sem servidor) para treinar com ques
 ## Escudo anti-chute
 - Gabarito balanceado: no máx. 2 letras iguais seguidas, sem escadas (A-B-C) nem alternâncias (A-B-A-B), letras distribuídas por igual; alternativas embaralhadas a cada prova.
 - Lint de questões: alerta quando a certa é bem maior/menor, "todas as anteriores", termos absolutos só nas erradas, eco do enunciado. A montagem da prova limita questões em que a certa é a mais longa ao nível do acaso.
-- Cada resposta tem segurança (certeza/dúvida/chute); respostas rápidas demais ou em padrão de marcação valem metade; chutes não contam como domínio.
+- Tocou, marcou: a resposta é registrada na hora, sem pergunta de certeza. Respostas rápidas demais para a leitura ou em padrão de marcação (mesma letra, escada, alternância) valem metade no "domínio real".
 
 ## Testes
 `node tests/core.test.js` (gabaritos, detecção de padrões, lint e qualidade das questões de exemplo).

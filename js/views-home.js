@@ -65,7 +65,7 @@
             <div class="eyebrow">${hasData ? 'Seu panorama' : 'Pronto para começar'}</div>
             <h1>${hasData ? `Domínio real de <span class="grad-text">${Math.round(sm.real * 100)}%</span>` : 'Faça seu primeiro <span class="grad-text">simulado</span>'}</h1>
             <p class="muted" style="max-width:48ch;margin:8px 0 20px">${hasData
-              ? `${sm.n} respostas em ${series.length} prova(s). O domínio real desconta chutes e acertos por sorte — é o número que importa.`
+              ? `${sm.n} respostas em ${series.length} prova(s). O domínio real desconta respostas apressadas ou em padrão de chute — é o número que importa.`
               : (qTotal ? `Você tem ${mats.length} material(is) e ${qTotal} questões prontas. Um toque em “Simular tudo” já monta a prova com todas elas.` : `Seus slides já foram lidos, mas ainda não há questões. Toque em “Criar questões” para a IA elaborá-las a partir do conteúdo.`)}</p>
             <div class="row wrap gap">
               ${qTotal ? '<button class="btn primary lg" data-act="quick-start">⚡ Simular tudo</button>' : '<button class="btn primary lg" data-act="mk-first">✨ Criar questões</button>'}
@@ -74,7 +74,7 @@
             </div>
           </div>
           <div class="rings">
-            <div class="ring-wrap">${C.ring(sm.real, { text: hasData ? Math.round(sm.real * 100) + '%' : '—', label: 'domínio real' })}<small>acertos com segurança, sem sinais de chute</small></div>
+            <div class="ring-wrap">${C.ring(sm.real, { text: hasData ? Math.round(sm.real * 100) + '%' : '—', label: 'domínio real' })}<small>acertos sem sinais de chute</small></div>
             <div class="ring-wrap">${C.ring(tot ? touched / tot : 0, { c1: 'var(--accent2)', c2: 'var(--good)', label: 'cobertura' })}<small>${touched} de ${tot} temas já cobrados</small></div>
           </div>
         </div>

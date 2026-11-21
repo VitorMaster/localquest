@@ -91,7 +91,7 @@
 ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ativo</h3>
             <div class="insight"><span class="em">🔀</span><div><b>Gabarito balanceado</b><small class="muted">Letras certas distribuídas por igual; no máximo ${S().settings.maxRun || 2} iguais seguidas; sem escadas nem alternâncias.</small></div></div>
             <div class="insight"><span class="em">📏</span><div><b>Sem “a maior é a certa”</b><small class="muted">O teto de questões em que a correta é a mais longa fica no nível do acaso.</small></div></div>
-            <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Chutes e respostas rápidas demais não contam como domínio.</small></div></div></div>` : ''}
+            <div class="insight"><span class="em">⏱️</span><div><b>Respostas apressadas</b><small class="muted">Responder rápido demais para ler ou em padrão de letras vale metade.</small></div></div></div>` : ''}
           ${pool ? `<button class="btn primary lg" data-act="start">▶ Simular ${n} questões</button>` : `<div class="card" style="border-color:var(--warn)"><b>Ainda não há questões para simular</b>
             <p class="muted" style="margin:6px 0 12px">${cfg.materialIds.length ? 'Os materiais marcados não têm questões (ou nenhuma bate com o nível escolhido). Crie as questões primeiro.' : 'Marque ao menos um material.'}</p>
             ${(() => { const e = cfg.materialIds.map(Q.Store.material).filter(Boolean).find((m) => !Q.Store.questionsOf(m.id).length); return e ? `<button class="btn primary" data-act="mk-q" data-id="${e.id}">✨ Criar questões de “${esc(e.title.slice(0, 28))}”</button>` : ''; })()}</div>`}
@@ -150,7 +150,7 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
     const ses = S().session, it = ses.items[ses.idx];
     if (it.a) return;
     it.pending = pos;
-    Q.App.refresh();
+    confirmConf('direct'); // sem pergunta de certeza/dúvida: tocou, marcou
   }
   function confirmConf(conf) {
     const ses = S().session, it = ses.items[ses.idx];
@@ -199,8 +199,6 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
           ${(ses.useImages === false ? [] : (q.imageIds || [])).map((id) => `<img class="q-fig" data-img="${id}" data-act="zoom-img" alt="Figura da questão">`).join('')}
           <div class="q-stem">${esc(q.stem)}</div>
           <div class="opts">${opts}</div>
-          ${it.pending != null && !it.a ? `<div class="conf"><b>Quão seguro você está da letra ${Q.LETTERS[it.pending]}?</b>
-            <div class="row" style="margin-top:12px"><button class="btn" data-act="conf" data-c="sure">✅ Certeza<small>tecla 1</small></button><button class="btn" data-act="conf" data-c="doubt">🤔 Dúvida<small>tecla 2</small></button><button class="btn" data-act="conf" data-c="guess">🎲 Chute<small>tecla 3</small></button></div></div>` : ''}
           ${it.a ? `<div class="explain"><b>${correct ? '✅ Você acertou' : '❌ Você errou'}</b>
             ${correct ? `<div class="mt-s"><b>Por que está certo:</b> ${esc(q.explanation || 'Conforme o material.')}</div>`
               : `<div class="mt-s"><b>Por que a letra ${Q.LETTERS[it.a.chosenPos]} não é a correta:</b> ${esc(why)}</div><div class="mt-s"><b>Por que a letra ${Q.LETTERS[it.order.indexOf(q.correct)]} é a correta:</b> ${esc(q.explanation || 'Conforme o material.')}</div>`}
@@ -229,7 +227,6 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
         const it = s.items[s.idx];
         const k = e.key.toLowerCase();
         if (!it.a && 'abcd'.includes(k) && k.length === 1) pick('abcd'.indexOf(k));
-        else if (!it.a && it.pending != null && '123'.includes(k) && k.length === 1) confirmConf(['sure', 'doubt', 'guess'][+k - 1]);
         else if (it.a && e.key === 'Enter') next();
       };
       document.addEventListener('keydown', keyH);
@@ -237,7 +234,6 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
     unmount: stop,
     act: {
       pick: (el) => pick(+el.dataset.pos),
-      conf: (el) => confirmConf(el.dataset.c),
       next,
       quit: async () => {
         const ses = S().session;
@@ -281,7 +277,7 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
           <div class="ring-wrap">${C.ring(sm.integrity, { label: 'integridade', size: 120, c1: 'var(--good)', c2: 'var(--accent2)' })}<small>${sm.fast + sm.patt ? sm.fast + ' rápida(s) · ' + sm.patt + ' em padrão' : 'sem sinais de chute'}</small></div>
         </div>
         <div>
-          <div class="stat-row"><div class="stat"><b>${sm.n}/${at.requested}</b><small>questões respondidas / escolhidas</small></div><div class="stat"><b>${sm.luck}</b><small>acertos sem mérito (sorte)</small></div><div class="stat"><b>${sm.overconf}</b><small>erros com “certeza”</small></div><div class="stat"><b>${Q.fmtDur(sm.ms)}</b><small>tempo médio por questão</small></div></div>
+          <div class="stat-row"><div class="stat"><b>${sm.n}/${at.requested}</b><small>questões respondidas / escolhidas</small></div><div class="stat"><b>${sm.luck}</b><small>acertos apressados (valem metade)</small></div>${sm.overconf ? `<div class="stat"><b>${sm.overconf}</b><small>erros com “certeza”</small></div>` : ''}<div class="stat"><b>${Q.fmtDur(sm.ms)}</b><small>tempo médio por questão</small></div></div>
           <div class="mt-s"><span class="lbl">Suas respostas</span>${strip(at)}</div>
 ${Q.isCreator() ? `          <div class="mt-s"><span class="lbl">Gabarito sorteado</span> <small class="muted">(maior sequência de letras iguais: ${stat.maxRun} · escadas: ${stat.stairs} · alternâncias: ${stat.alts})</small>${keyStrip(at)}</div>` : ''}
         </div></div></div>
@@ -296,7 +292,7 @@ ${Q.isCreator() ? `          <div class="mt-s"><span class="lbl">Gabarito sortea
         <div class="card"><h3>🔧 Pontos de melhoria</h3>${ins.tips.map((t) => `<div class="insight"><span class="em">${t.icon}</span><div><b>${esc(t.title)}</b><small class="muted">${esc(t.text)}</small>${t.action ? `<div class="mt-s">${t.action.href ? `<a class="btn sm" href="${t.action.href}">${t.action.label}</a>` : `<button class="btn sm" data-act="r-drill" data-s="${t.action.act === 'drill-new' ? 'cobertura' : 'fraquezas'}" data-id="${at.id}">${t.action.label}</button>`}</div>` : ''}</div></div>`).join('')}</div>
       </div>
 
-${Q.isCreator() ? `      <div class="card mt"><h3>🎚️ Calibragem <span class="sub">o que você acha que sabe × o que acertou</span></h3>
+${Q.isCreator() && calib.some((c) => c.n) ? `      <div class="card mt"><h3>🎚️ Calibragem <span class="sub">o que você acha que sabe × o que acertou</span></h3>
         ${calib.map((c) => C.bar(`${E.CONF_LABEL[c.conf]} (${c.n})`, c.acc, { text: c.n ? Math.round(c.acc * 100) + '% de acerto' : '—', color: c.conf === 'guess' ? 'var(--warn)' : undefined })).join('')}
         <small class="muted">Ideal: “certeza” com acerto alto e “chute” com acerto próximo de 25%.</small></div>` : ''}
 
@@ -318,7 +314,7 @@ ${Q.isCreator() ? `      <div class="card mt"><h3>🎚️ Calibragem <span class
   function review(a, i, q) {
     const tags = [];
     tags.push(`<span class="badge ${a.correct ? 'b-good' : 'b-bad'}">${a.correct ? 'Acerto' : 'Erro'}</span>`);
-    tags.push(`<span class="chip">${a.conf === 'sure' ? '✅ certeza' : a.conf === 'doubt' ? '🤔 dúvida' : '🎲 chute'}</span>`);
+    if (a.conf === 'sure' || a.conf === 'doubt' || a.conf === 'guess') tags.push(`<span class="chip">${a.conf === 'sure' ? '✅ certeza' : a.conf === 'doubt' ? '🤔 dúvida' : '🎲 chute'}</span>`);
     tags.push(`<span class="chip">⏱ ${Q.fmtDur(a.ms)}</span>`);
     if (a.fast) tags.push('<span class="badge b-warn">rápida demais</span>');
     if (a.patt) tags.push('<span class="badge b-warn">padrão de marcação</span>');

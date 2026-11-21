@@ -35,7 +35,7 @@
     'cfg-strat': 'Define como as questões são escolhidas: misto, cobertura, pontos fracos ou aleatório.',
     'cfg-timer': 'Define um tempo limite para a prova.',
     start: 'Inicia a prova com as opções escolhidas.',
-    pick: 'Marca esta alternativa. Atalho: teclas A, B, C ou D.',
+    pick: 'Toque para responder. Atalho: teclas A, B, C ou D.',
     conf: 'Informa o quanto você está seguro. Chutes e respostas rápidas demais não contam como domínio. Atalhos: 1, 2 e 3.',
     next: 'Vai para a próxima questão (tecla Enter).',
     quit: 'Encerra a prova agora e contabiliza o que foi respondido.',
