@@ -118,25 +118,64 @@
 
   const code = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
 
+  /* ---------- simulação (dados fictícios, não grava nada) ---------- */
+  let demo = null;
+  const AULAS = [
+    ['geriatria__envelhecimento-e-avaliacao-funcional', 'Geriatria', 'Envelhecimento e avaliação funcional', ['Transição demográfica', 'Senescência × senilidade', 'Avaliação funcional: AVDs', 'Timed Up and Go (TUG)', 'Prevenção de quedas']],
+    ['farmacologia__polifarmacia-e-seguranca-medicamentosa', 'Farmacologia', 'Polifarmácia e segurança medicamentosa', ['O que é polifarmácia', 'Critérios de Beers', 'Cascata de prescrição', 'Estratégias de segurança']],
+  ];
+  const NAMES = [['Bia', 0.82], ['Carlos', 0.7], ['Dani', 0.64], ['Eduardo', 0.55], ['Fernanda', 0.76]];
+  const slugT = (s) => slug(s);
+  const addRound = (p, skill, rnd, big) => {
+    AULAS.forEach(([ak, mat, aula, tops]) => {
+      const a = (p.aulas[ak] = p.aulas[ak] || { materia: mat, aula, curso: 'Fisioterapia', periodo: '6º período', c: 0, t: 0, real: 0, topics: {} });
+      tops.forEach((tt) => {
+        const n = Math.round((big ? 4 : 1) + rnd() * (big ? 3 : 2));
+        const c = Array.from({ length: n }).filter(() => rnd() < skill).length;
+        const tp = (a.topics[slugT(tt)] = a.topics[slugT(tt)] || { title: tt, c: 0, t: 0 });
+        tp.t += n; tp.c += c; a.t += n; a.c += c;
+      });
+      a.real = Math.round(skill * 100 - 12 + rnd() * 10);
+    });
+  };
+  const startDemo = () => {
+    const rnd = Q.seeded(Date.now() % 100000);
+    const mine = R.myScores();
+    const me = { id: 'demo_me', nick: S().settings.nick || 'Visitante', groups: ['DEMO01'], aulas: Object.keys(mine).length ? mine : {} };
+    if (!Object.keys(me.aulas).length) addRound(me, 0.68, rnd, true);
+    const others = NAMES.map(([n, sk], i) => { const p = { id: 'demo_' + i, nick: n, groups: ['DEMO01'], aulas: {}, skill: sk }; addRound(p, sk, rnd, true); return p; });
+    demo = { players: [me, ...others], groups: { DEMO01: { name: 'Turma de Geriatria 6º período (simulação)' } }, prev: {}, rnd, round: 0, me };
+    view.scope = 'DEMO01'; view.by = 'geral'; view.key = '';
+  };
+  const demoRound = () => {
+    const rows = R.compute(demo.players, 'DEMO01', view.by, view.key);
+    demo.prev = Object.fromEntries(rows.map((r) => [r.id, r.pos]));
+    demo.round++;
+    demo.players.forEach((p) => addRound(p, p.skill || 0.68, demo.rnd, false));
+  };
+
   /* ---------- tela ---------- */
   const paint = () => {
     const box = Q.$('#rk-body');
     if (!box) return;
-    const mine = S().settings.groups || [];
+    const P = demo ? demo.players : players, G = demo ? demo.groups : groups, myId = demo ? 'demo_me' : uid;
+    const mine = demo ? ['DEMO01'] : S().settings.groups || [];
     if (view.scope && !mine.includes(view.scope)) view.scope = '';
-    const opts = view.by === 'geral' ? [] : R.options(players, view.scope, view.by);
+    const opts = view.by === 'geral' ? [] : R.options(P, view.scope, view.by);
     if (view.by !== 'geral' && !opts.some((o) => o[0] === view.key)) view.key = opts[0] ? opts[0][0] : '';
-    const rows = R.compute(players, view.scope, view.by, view.key);
+    const rows = R.compute(P, view.scope, view.by, view.key);
+    const mv = (r) => { if (!demo || !demo.round) return ''; const d = (demo.prev[r.id] || r.pos) - r.pos; return d > 0 ? `<span style="color:var(--good)">▲${d}</span>` : d < 0 ? `<span style="color:var(--bad)">▼${-d}</span>` : '<span class="muted">–</span>'; };
     const medal = (p) => (p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : p);
     const label = { geral: 'Geral (todas as questões)', materia: 'Matéria', aula: 'Aula', assunto: 'Assunto' };
     box.innerHTML = `
       <div class="row wrap gap mb">
-        <div class="field" style="margin:0"><label>Quem</label><select data-change="rk-scope"><option value="">🌍 Todos os usuários (ranking geral)</option>${mine.map((g) => `<option value="${g}" ${view.scope === g ? 'selected' : ''}>👥 ${esc((groups[g] || {}).name || g)}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Quem</label><select data-change="rk-scope"><option value="">🌍 Todos os usuários (ranking geral)</option>${mine.map((g) => `<option value="${g}" ${view.scope === g ? 'selected' : ''}>👥 ${esc((G[g] || {}).name || g)}</option>`).join('')}</select></div>
         <div class="field" style="margin:0"><label>Separar por</label><select data-change="rk-by">${Object.entries(label).map(([k, l]) => `<option value="${k}" ${view.by === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         ${view.by !== 'geral' ? `<div class="field" style="margin:0;min-width:240px"><label>${label[view.by]}</label><select data-change="rk-key">${opts.length ? opts.map(([k, l]) => `<option value="${esc(k)}" ${view.key === k ? 'selected' : ''}>${esc(l)}</option>`).join('') : '<option value="">— nenhum dado ainda —</option>'}</select></div>` : ''}
       </div>
+      ${demo ? '<div class="verdict todo mb"><span class="em">🎮</span><div><b>Simulação com dados fictícios</b><br><small>Rodada ' + demo.round + '. Nada disso é gravado nem aparece para outras pessoas.</small></div></div>' : ''}
       ${rows.length ? `<div style="overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>Participante</th><th>Acertos</th><th>Respondidas</th><th>Aproveitamento</th><th>Domínio real</th></tr></thead><tbody>
-        ${rows.map((r) => `<tr style="${r.id === uid ? 'background:color-mix(in srgb,var(--accent2) 14%,transparent);font-weight:700' : ''}"><td>${medal(r.pos)}</td><td>${esc(r.nick)}${r.id === uid ? ' <span class="badge b-info">você</span>' : ''}</td><td><b>${r.c}</b></td><td>${r.t}</td><td>${r.pct}%</td><td>${r.real == null ? '—' : r.real + '%'}</td></tr>`).join('')}</tbody></table></div>
+        ${rows.map((r) => `<tr style="${r.id === myId ? 'background:color-mix(in srgb,var(--accent2) 14%,transparent);font-weight:700' : ''}"><td>${medal(r.pos)} ${mv(r)}</td><td>${esc(r.nick)}${r.id === myId ? ' <span class="badge b-info">você</span>' : ''}</td><td><b>${r.c}</b></td><td>${r.t}</td><td>${r.pct}%</td><td>${r.real == null ? '—' : r.real + '%'}</td></tr>`).join('')}</tbody></table></div>
         <small class="muted">Acertos = questões diferentes que o participante acertou. Refazer a mesma questão não soma de novo.</small>`
         : '<div class="empty"><div class="big">🏁</div><p class="muted">Ninguém pontuou neste recorte ainda. Faça uma prova e clique em “Atualizar meu placar”.</p></div>'}`;
     Q.applyTips && Q.applyTips(box);
@@ -162,13 +201,16 @@
           <div class="row gap mt-s"><input type="text" id="rk-code" placeholder="Código do grupo" maxlength="6" style="text-transform:uppercase"><button class="btn" data-act="rk-join">Entrar</button></div>
           <div class="row gap mt-s"><input type="text" id="rk-gname" placeholder="Nome do novo grupo" maxlength="40"><button class="btn" data-act="rk-create">Criar grupo</button></div></div>
       </div>
-      <div class="card"><h3>🏆 Classificação</h3><div id="rk-body"><p class="muted">Conectando…</p></div></div>`;
+      <div class="card"><div class="row between wrap gap mb"><h3 style="margin:0">🏆 Classificação</h3><div class="row wrap gap" id="rk-demo-btns"><button class="btn" data-act="rk-demo">🎮 Ver simulação</button></div></div><div id="rk-body"><p class="muted">Conectando…</p></div></div>`;
     },
     async mount() {
+      const paintDemoBtns = () => { const b = Q.$('#rk-demo-btns'); if (b) b.innerHTML = demo ? '<button class="btn primary" data-act="rk-round">↻ Simular nova rodada</button><button class="btn ghost" data-act="rk-demo-off">Sair da simulação</button>' : '<button class="btn" data-act="rk-demo">🎮 Ver simulação</button>'; Q.applyTips && Q.applyTips(b); };
+      Q.Views.rank._btns = paintDemoBtns;
       unsub.forEach((u) => u()); unsub = [];
       const off = Q.$('#rk-offline');
       const ok = await connect();
       if (!Q.$('#rk-body')) return;
+      if (demo) { paintDemoBtns(); paint(); return; }
       if (!ok) {
         off.hidden = false;
         off.innerHTML = '<b>Ranking indisponível neste modo.</b><p class="muted" style="margin:6px 0 0">O ranking entre usuários precisa do link online compartilhado (com acesso de colaborador para escrever). Seu placar pessoal acima continua funcionando.</p>';
@@ -179,8 +221,11 @@
       Q.$('#rk-last').textContent = lastSync ? 'Enviado às ' + Q.fmtDate(lastSync) : '';
       paint();
     },
-    unmount() { unsub.forEach((u) => u()); unsub = []; },
+    unmount() { unsub.forEach((u) => u()); unsub = []; demo = null; },
     act: {
+      'rk-demo': () => { startDemo(); Q.Views.rank._btns(); Q.$('#rk-offline').hidden = true; paint(); },
+      'rk-round': () => { demoRound(); paint(); },
+      'rk-demo-off': () => { demo = null; view.scope = ''; Q.App.refresh(); },
       'rk-nick': async () => {
         const v = Q.$('#rk-nick').value.trim();
         if (v.length < 2) return Q.toast('Escolha um nome com pelo menos 2 letras.', 'warn');
