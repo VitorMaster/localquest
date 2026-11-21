@@ -97,8 +97,7 @@
     "dificuldade": 2
   }
 ]</pre></details></li>
-        <li><b>Qualidade da IA pela API <span class="muted">(opcional, é cobrada à parte)</span></b><p class="muted">Com uma chave da API da Anthropic o app gera tudo sozinho e troca as questões automáticas ainda não respondidas. A chave fica só neste navegador.</p>
-          <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="checkbox" id="aiq" ${st.aiQuality ? 'checked' : ''} style="margin-top:4px"><span>Usar a IA automaticamente ao enviar materiais novos</span></label>
+        <li><b>Qualidade da IA pela API <span class="muted">(opcional, é cobrada à parte)</span></b><p class="muted">Com uma chave da API da Anthropic o app elabora as questões sozinho (a IA lê os slides). A chave fica só neste navegador.</p>
           <div class="grid g2"><div class="field"><label>Chave de API</label><input type="password" id="apikey" value="${esc(st.apiKey)}" placeholder="sk-ant-…" autocomplete="off"></div>
           <div class="field"><label>Modelo</label><input type="text" id="model" value="${esc(st.model)}"></div></div>
           <div class="row wrap gap"><button class="btn" data-act="save-ai">💾 Salvar configuração</button><button class="btn primary" data-act="adv-ai" ${m ? '' : 'disabled'}>✨ Refazer este material com IA</button></div></li>
@@ -151,7 +150,7 @@
           Q.App.refresh();
         } catch (e) { Q.toast('Não consegui ler os arquivos: ' + e.message, 'bad', 7000); }
       },
-      'save-ai': () => { S().settings.apiKey = Q.$('#apikey').value.trim(); S().settings.aiQuality = Q.$('#aiq').checked; S().settings.model = Q.$('#model').value.trim() || 'claude-sonnet-5-5'; Q.Store.save(); Q.toast('Configuração salva', 'good'); },
+      'save-ai': () => { S().settings.apiKey = Q.$('#apikey').value.trim(); S().settings.model = Q.$('#model').value.trim() || 'claude-sonnet-5-5'; Q.Store.save(); Q.toast('Configuração salva', 'good'); },
       export: async () => { Q.download(`localquest-backup-${new Date().toISOString().slice(0, 10)}.json`, await Q.Store.exportAll()); },
       import: () => Q.$('#bk').click(),
       demo: async () => { await Q.Demo.load({ history: true }); Q.toast('Exemplo carregado', 'good'); Q.App.refresh(); },

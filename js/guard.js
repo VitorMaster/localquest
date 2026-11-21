@@ -65,6 +65,7 @@
     if (ov[q.correct] >= 2 && ov[q.correct] > maxOther)
       push('warn', 'eco', 'A certa repete termos do enunciado que as outras não repetem.');
 
+    if (q.origin !== 'auto' && /\b(segundo|conforme|de acordo com|no|do|pelo|pela)\s+(o\s+|a\s+)?(slide|material|aula|texto)\b/i.test(q.stem)) push('warn', 'meta', 'O enunciado cita “slide/material”: numa prova real isso não aparece.');
     if (!(q.topicIds || []).length) push('warn', 'slide', 'Vincule a questão a pelo menos um slide (necessário para o mapa de cobertura).');
     return issues;
   };

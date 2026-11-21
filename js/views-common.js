@@ -49,7 +49,7 @@
     <div class="field"><label>Quantas questões criar? <span class="muted" style="text-transform:none;letter-spacing:0">(até 50)</span></label><input type="number" id="${idp}-n" min="1" max="50" value="${n}"></div>
     <div class="field"><label>Nível das perguntas e respostas</label>
       <div class="seg" id="${idp}-lv">${[['misto', 'Misto'], ['1', 'Fácil'], ['2', 'Médio'], ['3', 'Difícil']].map(([k, l], i) => `<button type="button" data-act="lv-pick" data-lv="${k}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <small class="muted"><b>Fácil:</b> perguntas diretas e alternativas bem diferentes. <b>Médio:</b> mistura. <b>Difícil:</b> alternativas muito parecidas, exigem comparar com atenção. <b>Misto:</b> um pouco de cada.</small></div>`;
+      <small class="muted"><b>Fácil:</b> compreensão — conceitos e definições. <b>Médio:</b> aplicação em situações-problema curtas. <b>Difícil:</b> casos clínicos que combinam vários conceitos e exigem decisão. <b>Misto:</b> um terço de cada.</small></div>`;
   V.readCreate = (root, idp) => {
     const lv = (Q.$(`#${idp}-lv .on`, root) || {}).dataset;
     const k = lv ? lv.lv : 'misto';

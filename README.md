@@ -3,13 +3,16 @@
 Plataforma web (HTML/CSS/JS puro, sem build, sem servidor) para treinar com questões de múltipla escolha (4 alternativas) baseadas **apenas** nos slides das aulas.
 
 ## Criar questões a partir do material (o foco do app)
-1. **Biblioteca → Adicionar slides** (PPTX ou PDF; pode enviar vários de uma vez).
-2. Escolha **quantas questões criar (até 50)** e o **nível**: Fácil, Médio, Difícil ou Misto. O mesmo painel está em **✨ Criar questões** em cada material, para criar mais depois.
-3. As perguntas usam só o texto dos seus slides e **não se repetem** (nem enunciado, nem conjunto de alternativas). Se o material não comportar tudo o que você pediu, o app cria o que for possível sem repetir e avisa.
-4. Cada questão traz a justificativa da correta e, para cada errada, de onde ela vem no material.
+1. **Biblioteca → Adicionar slides** (PPTX ou PDF; pode enviar vários). O app **descobre a matéria sozinho**: pela capa ("Disciplina: …"), pelas propriedades do arquivo ou pelos termos do conteúdo, com um banco médico de apoio embutido. Você só confirma.
+2. Em seguida abre o **✨ Criar questões** (também disponível em cada material): escolha **quantidade (até 50)**, **nível** e **como criar**.
+3. Uma **IA lê os slides, entende o assunto e elabora questões de prova**: conceituais, de aplicação e casos clínicos, com 4 alternativas, justificativa da correta e de cada errada. Tudo que sustenta a resposta correta vem **só dos slides**; o banco médico de apoio só inspira alternativas *erradas*. Nada se repete.
+   - **Fácil**: compreensão (conceitos, definições) · **Médio**: aplicação em situação-problema curta · **Difícil**: caso clínico que integra vários conceitos · **Misto**: um terço de cada.
+4. Formas de usar a IA:
+   - **IA automática (Claude)** — no link do claude.ai, usa a conta de quem abre (pede autorização na primeira vez).
+   - **IA pela chave da API** — chave da Anthropic (Ajustes → perfil Criador); cobrada à parte.
+   - **Meu chat de IA (grátis)** — o app gera o pedido (regras + slides), você cola no Claude/ChatGPT/Gemini e traz a resposta; para 50 questões são 5 partes.
+   - **Básico, sem IA** — só reorganiza frases dos slides (perguntas literais); serve para revisão rápida.
 5. No **Simulado** dá para filtrar por nível, escolher os temas e simular.
-
-Níveis: **Fácil** = pergunta direta e alternativas bem diferentes · **Médio** = mistura · **Difícil** = alternativas muito parecidas, que exigem comparar com atenção.
 
 ## Perfis
 - **Estudante** (padrão): só o essencial — enviar material, criar questões, simular, desempenho, disputas e ranking.

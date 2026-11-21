@@ -82,6 +82,7 @@
     'u-go': 'Lê os slides e cria as questões automaticamente.',
     'imp-go': 'Importa as questões coladas acima.', 'imp-f': 'Escolhe um arquivo .json com as questões.',
     'pp-c': 'Copia o prompt para a área de transferência.', 'ai-go': 'Gera as questões pela API.', 'q-save': 'Salva a questão no banco.',
+    'mk-go': 'Cria as questões com a quantidade, o nível e o método escolhidos.', 'mk-cancel': 'Fecha, ou para a criação em andamento.', 'w-copy': 'Copia o pedido (regras + slides) para colar no seu chat de IA.', 'w-ok': 'Importa as questões que a IA devolveu.', 'w-skip': 'Pula esta parte.', 'w-end': 'Termina e fecha.',
     'q-up': 'Anexa uma imagem a esta questão.', ok: 'Confirma.',
   };
   const NAV = {

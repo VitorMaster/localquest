@@ -173,6 +173,56 @@
     return { topics, skipped: 0, kind: 'pdf' };
   }
 
+
+  /* ================= LEITURA RÁPIDA (só texto) para reconhecer matéria e título ================= */
+  async function peekPPTX(file) {
+    const zip = await JSZip.loadAsync(file);
+    const read = async (p) => { const f = zip.file(p); return f ? f.async('string') : null; };
+    const meta = { title: '', subject: '' };
+    const core = await read('docProps/core.xml');
+    if (core) {
+      const d = parseXml(core);
+      const g = (n) => { const e = byLocal(d, n)[0]; return e ? cleanText(e.textContent) : ''; };
+      meta.title = g('title'); meta.subject = g('subject');
+    }
+    const pres = parseXml(await read('ppt/presentation.xml'));
+    const rels = parseXml(await read('ppt/_rels/presentation.xml.rels'));
+    const map = {};
+    byLocal(rels, 'Relationship').forEach((r) => (map[r.getAttribute('Id')] = r.getAttribute('Target')));
+    const paths = byLocal(pres, 'sldId').map((s) => map[s.getAttributeNS(NS_R, 'id')]).filter(Boolean).map((t) => resolvePath('ppt/presentation.xml', t)).slice(0, 120);
+    const slides = [];
+    for (const sp of paths) {
+      const doc = parseXml(await read(sp));
+      const shapes = byLocal(doc, 'sp');
+      const tsp = shapes.find((sh) => { const ph = byLocal(sh, 'ph')[0]; return ph && ['title', 'ctrTitle'].includes(ph.getAttribute('type') || ''); });
+      const title = tsp ? cleanText(byLocal(tsp, 't').map((t) => t.textContent).join(' ')) : '';
+      const lines = byLocal(doc, 'p').filter((p) => !(tsp && tsp.contains(p))).map((p) => cleanText(byLocal(p, 't').map((x) => x.textContent).join(''))).filter(Boolean);
+      slides.push({ title, text: lines.join('\n') });
+    }
+    return { meta, slides };
+  }
+  async function peekPDF(file) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const meta = { title: '', subject: '' };
+    try { const m = await pdf.getMetadata(); meta.title = (m.info && m.info.Title) || ''; meta.subject = (m.info && m.info.Subject) || ''; } catch (_) {}
+    const slides = [];
+    for (let p = 1; p <= Math.min(pdf.numPages, 60); p++) {
+      const tc = await (await pdf.getPage(p)).getTextContent();
+      const t = cleanText(tc.items.map((i) => i.str).join(' '));
+      slides.push({ title: '', text: t });
+    }
+    return { meta, slides };
+  }
+  /** Lê só o texto do arquivo e devolve { meta:{title,subject}, slides, detected:{materia,source,confidence} }. */
+  Ingest.peek = async (file) => {
+    const r = /\.pptx$/i.test(file.name) ? await peekPPTX(file) : await peekPDF(file);
+    const first = (r.slides.find((s) => s.title) || r.slides[0] || {});
+    r.title = r.meta.title || first.title || (first.text || '').split('\n')[0] || '';
+    r.detected = Q.Med ? Q.Med.detectSubject({ subject: r.meta.subject, title: r.title, slides: r.slides }) : { materia: '' };
+    return r;
+  };
+
   /** Lê o arquivo e devolve { topics, skipped, kind }. */
   Ingest.parse = (file, progress) => {
     if (/\.pptx$/i.test(file.name)) return parsePPTX(file, progress);

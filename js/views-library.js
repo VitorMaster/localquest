@@ -10,18 +10,20 @@
 
   function openUpload() {
     let files = [];
+    let peeks = [];
+    let matAuto = true;
     const f = V.filter();
     const mod = Q.modal(`
       <div class="eyebrow">Novo material</div><h2>Enviar slides da aula</h2>
-      <p class="muted">Envie quantos materiais quiser. As questões são criadas <b>automaticamente</b> a partir dos slides. Aceita <b>.pptx</b> (texto + imagens de cada slide) e <b>.pdf</b> (texto + imagem da página). Tudo é processado no seu navegador — nada sai do seu computador.</p>
+      <p class="muted">Envie quantos materiais quiser. O Localquest <b>descobre a matéria sozinho</b> lendo os slides; depois uma IA lê o conteúdo e cria as questões de prova. Aceita <b>.pptx</b> e <b>.pdf</b>. A leitura dos arquivos é feita no seu navegador.</p>
       <div class="drop" id="drop"><div class="big">📑</div><b id="drop-t">Arraste os arquivos aqui ou clique para escolher</b><br><small class="muted">PPTX ou PDF — pode enviar vários de uma vez</small>
         <input type="file" id="file" accept=".pptx,.pdf" multiple hidden></div>
       <div class="mt grid g2">
         <div class="field"><label>Curso</label><input type="text" id="u-curso" list="dl-curso" autocomplete="off" placeholder="Comece a digitar: Fis…" value="${esc(f.curso || '')}"></div>
         <div class="field"><label>Período (só o número)</label><input type="text" id="u-periodo" inputmode="numeric" placeholder="Ex.: 6" value="${esc(f.periodo || '')}"></div>
-        <div class="field"><label>Matéria</label><input type="text" id="u-materia" list="dl-materia" placeholder="Ex.: Geriatria" value="${esc(f.materia || '')}"></div>
+        <div class="field"><label>Matéria <span class="muted" style="text-transform:none;letter-spacing:0">(preenchida automaticamente)</span></label><input type="text" id="u-materia" list="dl-materia" placeholder="Detectada pelos slides" value="${esc(f.materia || '')}"><small class="muted" id="u-hint"></small></div>
         <div class="field"><label>Título da aula</label><input type="text" id="u-title" placeholder="Ex.: Aula 3 — Avaliação funcional"></div>
-      </div>${V.createPanelHTML('up')}${datalists()}
+      </div>${datalists()}
       <div id="u-prog" hidden class="mb"><div class="progress"><i style="width:0"></i></div><small class="muted" id="u-msg"></small></div>
       <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="u-go" disabled>Ler slides</button></div>`);
     const el = mod.el, $ = (s) => Q.$(s, el);
@@ -36,7 +38,28 @@
       if (ok.length === 1 && !$('#u-title').value) $('#u-title').value = ok[0].name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
       if (ok.length > 1) $('#u-title').value = '';
       $('#u-go').disabled = false;
+      // leitura rápida (só texto) para reconhecer a matéria e o título
+      peeks = new Array(ok.length).fill(null);
+      $('#u-hint').textContent = 'Lendo os slides para identificar a matéria…';
+      Promise.all(ok.map((fl, i) => Q.Ingest.peek(fl).then((r) => (peeks[i] = r)).catch(() => null))).then(() => {
+        if (ok.length === 1) {
+          const r = peeks[0];
+          if (!r) { $('#u-hint').textContent = 'Não consegui ler o texto para identificar a matéria. Digite-a.'; return; }
+          const d = r.detected || {};
+          if (d.materia && (!$('#u-materia').value.trim() || matAuto)) { $('#u-materia').value = d.materia; matAuto = true; }
+          $('#u-hint').textContent = d.materia
+            ? `Detectada ${d.source === 'capa' ? 'na capa do slide' : d.source === 'propriedades' ? 'nas propriedades do arquivo' : 'pelo conteúdo dos slides'}${d.source === 'conteúdo' && d.confidence < 0.6 ? ' (confirme: pouca certeza)' : ''}. Você pode editar.`
+            : 'Não consegui identificar a matéria pelos slides. Digite-a.';
+          const t = (r.title || '').trim();
+          if (t && t.length <= 90 && (!$('#u-title').value || $('#u-title').value === ok[0].name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' '))) $('#u-title').value = t;
+        } else {
+          $('#u-hint').textContent = peeks.some((x) => x && x.detected && x.detected.materia)
+            ? 'Matéria de cada arquivo: ' + ok.map((fl, i) => `${fl.name.replace(/\.(pptx|pdf)$/i, '')} → ${(peeks[i] && peeks[i].detected && peeks[i].detected.materia) || '?'}`).join(' · ') + '. Deixe o campo vazio para usar essas, ou digite uma matéria para todos.'
+            : 'Não consegui identificar a matéria. Digite-a.';
+        }
+      });
     };
+    $('#u-materia').addEventListener('input', () => (matAuto = false));
     drop.addEventListener('click', () => inp.click());
     inp.addEventListener('change', () => setFile(inp.files));
     ['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
@@ -44,12 +67,12 @@
     drop.addEventListener('drop', (e) => setFile(e.dataTransfer.files));
     $('#u-go').addEventListener('click', async () => {
       const meta = { title: $('#u-title').value.trim(), curso: $('#u-curso').value.trim(), periodo: Q.normPeriodo($('#u-periodo').value), materia: $('#u-materia').value.trim() };
-      if ((files.length === 1 && !meta.title) || !meta.curso || !meta.periodo || !meta.materia) return Q.toast('Preencha curso, período e matéria' + (files.length === 1 ? ' e o título.' : '.'), 'warn');
+      const detectedAll = files.map((f, i) => (peeks[i] && peeks[i].detected && peeks[i].detected.materia) || '');
+      if ((files.length === 1 && !meta.title) || !meta.curso || !meta.periodo) return Q.toast('Preencha curso e período' + (files.length === 1 ? ' e o título.' : '.'), 'warn');
+      if (!meta.materia && !detectedAll.every(Boolean)) return Q.toast('Não consegui identificar a matéria de todos os arquivos. Digite a matéria.', 'warn');
       $('#u-go').disabled = true;
       $('#u-prog').hidden = false;
       const made = [];
-      let qn = 0;
-      const cc = V.readCreate(el, 'up');
       try {
         for (let k = 0; k < files.length; k++) {
           const f = files[k];
@@ -57,24 +80,16 @@
             $('#u-prog i').style.width = Math.round(((k + p) / files.length) * 100) + '%';
             $('#u-msg').textContent = `Arquivo ${k + 1} de ${files.length}: ${msg}`;
           });
-          const title = files.length === 1 ? meta.title : f.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
-          const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title }), parsed);
-          qn += Q.Autogen.create(m, { n: cc.n, levels: cc.levels }).created;
+          const pk = peeks[k];
+          const title = files.length === 1 ? meta.title : (pk && pk.title && pk.title.length <= 90 ? pk.title : f.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' '));
+          const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title, materia: meta.materia || detectedAll[k] }), parsed);
           if (Q.Enamed) Q.Enamed.sync();
           made.push(m);
-          if (Q.isCreator() && S().settings.aiQuality && Q.Ai.hasKey()) {
-            try {
-              $('#u-msg').textContent = `Arquivo ${k + 1} de ${files.length}: refinando questões com IA…`;
-              const r = await Q.Ai.generate(m, { replaceAuto: true });
-              qn += r.added - r.removed;
-            } catch (err) {
-              Q.toast('IA indisponível agora (' + err.message + '). Mantive as questões automáticas.', 'warn', 7000);
-            }
-          }
         }
         mod.close();
-        Q.toast(`${made.length} material(is) adicionado(s) e ${qn} questões criadas automaticamente. Já pode simular!`, 'good', 6000);
+        Q.toast(made.length === 1 ? `Material adicionado — matéria: ${made[0].materia}. Agora escolha como criar as questões.` : `${made.length} materiais adicionados. Toque em “Criar questões” em cada um.`, 'good', 6000);
         Q.go(made.length === 1 ? '#/biblioteca/' + made[0].id : '#/biblioteca');
+        if (made.length === 1) setTimeout(() => V.openCreate(made[0]), 400);
       } catch (e) {
         console.error(e);
         Q.toast((files[made.length] ? files[made.length].name + ': ' : '') + (e.message || 'Falha ao ler o arquivo'), 'bad', 7000);
