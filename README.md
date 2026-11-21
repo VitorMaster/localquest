@@ -1,14 +1,13 @@
-# Atlas — simulador de provas feito dos seus slides
+# Localquest — simulador de provas feito dos seus slides
 
 Plataforma web (HTML/CSS/JS puro, sem build, sem servidor) para treinar com questões de múltipla escolha (4 alternativas) baseadas **apenas** nos slides das aulas.
 
-## Como usar
-```bash
-python3 -m http.server 8000   # na pasta do projeto
-# abra http://localhost:8000
-```
-(Abrir `index.html` direto também funciona, mas a leitura de PDF exige o servidor local.)
+## Como abrir
+- **Windows:** dê dois cliques em `iniciar.bat` (precisa do Python instalado). **Mac/Linux:** `./iniciar.sh`.
+- Ou manualmente: `python3 -m http.server 8000` na pasta e abra `http://localhost:8000`.
+- Para só testar com PPTX, abrir `index.html` direto no Chrome também funciona; a leitura de PDF exige o servidor local.
 
+## Como usar
 1. **Biblioteca** → envie slides `.pptx` ou `.pdf` e informe curso, período e matéria. Cada slide vira um *tema*; as imagens dos slides são extraídas.
 2. **Questões** → crie manualmente, **importe JSON** ou use **Prompt para IA** (copie, cole numa IA, importe a resposta). Opcional: gerar direto com a API da Anthropic (chave em Ajustes, fica só no navegador).
 3. **Simulado** → escolha materiais, quantidade, estratégia (mista, cobertura, pontos fracos) e modo (prova ou estudo). Figuras relevantes aparecem dentro da questão.

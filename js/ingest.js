@@ -1,4 +1,4 @@
-/* Atlas — leitura de slides: PPTX (texto + imagens por slide) e PDF (texto + imagem da página). */
+/* Localquest — leitura de slides: PPTX (texto + imagens por slide) e PDF (texto + imagem da página). */
 (function () {
   const Q = window.Q;
   const Ingest = (Q.Ingest = {});

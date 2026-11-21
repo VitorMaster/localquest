@@ -1,4 +1,4 @@
-/* Atlas — simulado: configuração, execução e resultado/panorama. */
+/* Localquest — simulado: configuração, execução e resultado/panorama. */
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, G = Q.Guard, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;

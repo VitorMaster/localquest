@@ -1,4 +1,4 @@
-/* Atlas — roteador, navegação e inicialização. */
+/* Localquest — roteador, navegação e inicialização. */
 (function () {
   const Q = window.Q, V = Q.V;
   const S = () => Q.Store.state;
@@ -28,7 +28,7 @@
 
   function renderChrome(name) {
     const active = name === 'prova' || name === 'resultado' ? (name === 'prova' ? 'simulado' : 'desempenho') : name;
-    Q.$('#nav').innerHTML = `<div class="brand"><i>▲</i><div>Atlas<small class="muted">simulador de provas</small></div></div>
+    Q.$('#nav').innerHTML = `<div class="brand"><i>▲</i><div>Localquest<small class="muted">simulador de provas</small></div></div>
       ${NAV.map(([k, ic, l]) => `<a class="nl ${active === k ? 'on' : ''}" href="#/${k}"><span class="ic">${ic}</span><span class="lb">${l}</span></a>`).join('')}
       <div class="sp"></div><div class="nav-foot">Questões só dos seus slides.<br>Dados salvos neste navegador.</div>`;
     const bar = Q.$('#topbar');
@@ -52,7 +52,7 @@
     root.innerHTML = view.render(params);
     Q.Store.hydrateImages(root);
     if (view.mount) view.mount(root, params);
-    document.title = `${view.title || 'Atlas'} · Atlas`;
+    document.title = `${view.title || 'Localquest'} · Localquest`;
     if (keepScroll) window.scrollTo(0, y);
     else window.scrollTo(0, 0);
   };

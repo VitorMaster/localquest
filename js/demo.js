@@ -1,4 +1,4 @@
-/* Atlas — material de demonstração (ilustrativo; NÃO é fonte de estudo). */
+/* Localquest — material de demonstração (ilustrativo; NÃO é fonte de estudo). */
 (function () {
   const Q = window.Q;
   const D = (Q.Demo = {});

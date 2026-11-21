@@ -1,7 +1,7 @@
-/* Atlas — persistência local (IndexedDB). Estado em JSON + imagens como Blob. */
+/* Localquest — persistência local (IndexedDB). Estado em JSON + imagens como Blob. */
 (function () {
   const Q = window.Q;
-  const DB_NAME = 'atlas-simulador';
+  const DB_NAME = 'localquest-simulador';
   let db = null;
   const urlCache = new Map();
   const memImages = new Map(); // fallback quando o IndexedDB não está disponível
@@ -150,12 +150,12 @@
     const state = JSON.parse(JSON.stringify(Store.state));
     state.settings.apiKey = ''; // nunca exporta a chave
     state.session = null;
-    return JSON.stringify({ app: 'atlas', version: 1, exportedAt: Date.now(), state, images });
+    return JSON.stringify({ app: 'localquest', version: 1, exportedAt: Date.now(), state, images });
   };
 
   Store.importAll = async (text) => {
     const data = JSON.parse(text);
-    if (!data || data.app !== 'atlas' || !data.state) throw new Error('Arquivo de backup inválido.');
+    if (!data || (data.app !== 'localquest' && data.app !== 'atlas') || !data.state) throw new Error('Arquivo de backup inválido.');
     const keepKey = Store.state.settings.apiKey;
     Store.state = Object.assign(blank(), data.state);
     Store.state.settings = Object.assign(blank().settings, data.state.settings, { apiKey: keepKey });

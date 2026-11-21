@@ -1,4 +1,4 @@
-/* Atlas — utilitários gerais. Tudo vive no namespace global `Q` (sem build, funciona em file://). */
+/* Localquest — utilitários gerais. Tudo vive no namespace global `Q` (sem build, funciona em file://). */
 (function () {
   const Q = (window.Q = window.Q || {});
 

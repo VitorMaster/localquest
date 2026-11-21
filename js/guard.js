@@ -1,4 +1,4 @@
-/* Atlas — Escudo anti-chute.
+/* Localquest — Escudo anti-chute.
  *  1. Lint de questões: detecta pistas (alternativa certa maior, "todas as anteriores", absolutos…).
  *  2. Gabarito controlado: distribui as letras certas sem sequências suspeitas (AAA, ABC, ABAB…).
  *  3. Detecção de comportamento: respostas rápidas demais e padrões de marcação.

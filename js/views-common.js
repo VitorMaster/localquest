@@ -1,4 +1,4 @@
-/* Atlas — peças de interface compartilhadas entre as telas. */
+/* Localquest — peças de interface compartilhadas entre as telas. */
 (function () {
   const Q = window.Q;
   const E = Q.Engine;

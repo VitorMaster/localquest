@@ -1,4 +1,4 @@
-/* Atlas — banco de questões: lista, editor com lint ao vivo, importação, prompt e geração por IA. */
+/* Localquest — banco de questões: lista, editor com lint ao vivo, importação, prompt e geração por IA. */
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, G = Q.Guard, esc = Q.esc;
   const S = () => Q.Store.state;
@@ -96,7 +96,7 @@
   function openImport(m) {
     const mod = Q.modal(`
       <div class="eyebrow">${esc(m.title)}</div><h2>Importar questões (JSON)</h2>
-      <p class="muted">Cole aqui a resposta da IA (formato do prompt do Atlas) ou escolha um arquivo .json. Questões repetidas são ignoradas e cada uma passa pelo escudo anti-chute.</p>
+      <p class="muted">Cole aqui a resposta da IA (formato do prompt do Localquest) ou escolha um arquivo .json. Questões repetidas são ignoradas e cada uma passa pelo escudo anti-chute.</p>
       <div class="field"><textarea id="imp" rows="10" placeholder='[ { "slides":[3], "enunciado":"…", "alternativas":["…","…","…","…"], "correta":"B", "explicacao":"…" } ]'></textarea></div>
       <div class="row gap"><button class="btn sm" id="imp-f">📂 Escolher arquivo</button><input type="file" id="imp-file" accept=".json,.txt" hidden></div>
       <div id="imp-r" class="mt-s"></div>
@@ -133,7 +133,7 @@
       return;
     }
     const mod = Q.modal(`<div class="eyebrow">${esc(m.title)}</div><h2>Gerar questões com IA</h2>
-      <p class="muted">O Atlas envia o texto (e a primeira figura) dos slides ativos à API e importa o resultado já passando pelo escudo anti-chute.</p>
+      <p class="muted">O Localquest envia o texto (e a primeira figura) dos slides ativos à API e importa o resultado já passando pelo escudo anti-chute.</p>
       <div class="field"><label>Questões por slide</label><select id="ai-n">${[1, 2, 3].map((n) => `<option ${n === 2 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
       <div id="ai-p" hidden><div class="progress"><i style="width:0"></i></div><small class="muted" id="ai-m"></small></div>
       <div class="row end gap mt"><button class="btn ghost" data-close>Fechar</button><button class="btn primary" id="ai-go">✨ Gerar</button></div>`, { sticky: true });

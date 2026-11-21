@@ -1,4 +1,4 @@
-/* Atlas — gráficos em SVG puro (sem dependências). */
+/* Localquest — gráficos em SVG puro (sem dependências). */
 (function () {
   const Q = window.Q;
   const C = (Q.Charts = {});

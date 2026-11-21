@@ -1,4 +1,4 @@
-/* Atlas — biblioteca de materiais (slides) e detalhe do material. */
+/* Localquest — biblioteca de materiais (slides) e detalhe do material. */
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, esc = Q.esc;
   const S = () => Q.Store.state;
@@ -84,8 +84,8 @@
       }).join('')}</div>`;
     },
     mount() {
-      if (sessionStorage.getItem('atlas-open-upload')) {
-        sessionStorage.removeItem('atlas-open-upload');
+      if (sessionStorage.getItem('localquest-open-upload')) {
+        sessionStorage.removeItem('localquest-open-upload');
         openUpload();
       }
     },

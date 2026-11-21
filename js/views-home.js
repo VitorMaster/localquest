@@ -1,4 +1,4 @@
-/* Atlas — tela inicial (painel). */
+/* Localquest — tela inicial (painel). */
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;
@@ -18,9 +18,9 @@
 
   V.emptyState = () => `
     <div class="hero">
-      <div class="eyebrow">Bem-vindo ao Atlas</div>
+      <div class="eyebrow">Bem-vindo ao Localquest</div>
       <h1>Provas feitas <span class="grad-text">dos seus slides</span>, sem espaço para chute.</h1>
-      <p class="muted" style="max-width:56ch;margin:10px 0 22px">Envie os slides das aulas (PPTX ou PDF), crie ou importe questões e o Atlas mede o que você realmente domina, mostra quanto do conteúdo já foi cobrado e diz se você exauriu o material.</p>
+      <p class="muted" style="max-width:56ch;margin:10px 0 22px">Envie os slides das aulas (PPTX ou PDF), crie ou importe questões e o Localquest mede o que você realmente domina, mostra quanto do conteúdo já foi cobrado e diz se você exauriu o material.</p>
       <div class="row wrap gap">
         <a class="btn primary lg" href="#/biblioteca" data-act="go-upload">📤 Enviar meus slides</a>
         <button class="btn lg" data-act="load-demo">✨ Explorar com exemplo</button>
@@ -121,7 +121,7 @@
         Q.App.refresh();
       },
       'go-upload': () => {
-        sessionStorage.setItem('atlas-open-upload', '1');
+        sessionStorage.setItem('localquest-open-upload', '1');
       },
       'drill-weak': () => drill('fraquezas'),
       'drill-new': () => drill('cobertura'),

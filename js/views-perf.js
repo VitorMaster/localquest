@@ -1,4 +1,4 @@
-/* Atlas — desempenho (por matéria, período, curso) e ajustes. */
+/* Localquest — desempenho (por matéria, período, curso) e ajustes. */
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;
@@ -88,14 +88,14 @@
           <div class="divider"></div><div class="row wrap gap"><button class="btn" data-act="demo">✨ Carregar exemplo</button><button class="btn danger" data-act="reset">Apagar tudo</button></div>
           <p class="muted mt-s"><small>${Q.Store.persistent ? 'Armazenamento local ativo (IndexedDB).' : '⚠️ Armazenamento local indisponível: os dados serão perdidos ao fechar a página.'}</small></p></div>
       </div>
-      <div class="card mt"><h3>ℹ️ Como o Atlas pontua</h3>
+      <div class="card mt"><h3>ℹ️ Como o Localquest pontua</h3>
         <p class="muted"><b>Acerto bruto</b> = % de questões corretas. <b>Domínio real</b> = cada acerto vale 100% se marcado com “certeza”, 60% com “dúvida” e 0% se for “chute”; respostas rápidas demais para a leitura ou em padrão de marcação valem metade. Erros valem 0. <b>Integridade</b> = % de respostas sem sinais de comportamento de chute. Um tema é <b>dominado</b> com domínio ≥ 80% (peso maior para as respostas mais recentes), <b>em progresso</b> de 50% a 80% e <b>frágil</b> abaixo de 50%. Um material é <b>exaurido</b> quando todos os temas ativos têm questões e foram cobrados e todas as questões do banco já foram respondidas.</p></div>`;
     },
     act: {
       theme: (el) => { S().settings.theme = el.dataset.v; Q.Store.save(); Q.App.applyTheme(); Q.App.refresh(); },
       maxrun: (el) => { S().settings.maxRun = +el.dataset.v; Q.Store.save(); Q.App.refresh(); },
       'save-ai': () => { S().settings.apiKey = Q.$('#apikey').value.trim(); S().settings.model = Q.$('#model').value.trim() || 'claude-sonnet-5-5'; Q.Store.save(); Q.toast('Configuração salva', 'good'); },
-      export: async () => { Q.download(`atlas-backup-${new Date().toISOString().slice(0, 10)}.json`, await Q.Store.exportAll()); },
+      export: async () => { Q.download(`localquest-backup-${new Date().toISOString().slice(0, 10)}.json`, await Q.Store.exportAll()); },
       import: () => Q.$('#bk').click(),
       demo: async () => { await Q.Demo.load({ history: true }); Q.toast('Exemplo carregado', 'good'); Q.App.refresh(); },
       reset: async () => { if (await Q.confirm('Apagar TODOS os materiais, questões e histórico deste navegador?', 'Apagar tudo')) { await Q.Store.reset(); Q.toast('Tudo apagado'); Q.go('#/inicio'); Q.App.refresh(); } },

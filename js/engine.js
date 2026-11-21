@@ -1,4 +1,4 @@
-/* Atlas — motor: montagem de provas, pontuação, cobertura de conteúdo e insights. */
+/* Localquest — motor: montagem de provas, pontuação, cobertura de conteúdo e insights. */
 (function () {
   const Q = window.Q;
   const G = Q.Guard;

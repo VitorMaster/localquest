@@ -1,4 +1,4 @@
-/* Atlas — geração de questões: prompt para copiar, importação de JSON e geração direta via API Claude (opcional). */
+/* Localquest — geração de questões: prompt para copiar, importação de JSON e geração direta via API Claude (opcional). */
 (function () {
   const Q = window.Q;
   const Ai = (Q.Ai = {});
