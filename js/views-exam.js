@@ -11,6 +11,11 @@
     quick(materialIds, extra = {}) {
       const ids = materialIds.filter((id) => Q.Store.material(id));
       if (!ids.length) return Q.toast('Envie ao menos um material na Biblioteca.', 'warn');
+      if (!E.pool(ids).length) {
+        const empty = ids.map(Q.Store.material).find((m) => !Q.Store.questionsOf(m.id).length) || Q.Store.material(ids[0]);
+        Q.toast('Este material ainda não tem questões. Crie-as agora para poder simular.', 'warn', 6000);
+        return V.openCreate(empty);
+      }
       this.start(Object.assign({ materialIds: ids, n: 99999, strategy: 'misto', mode: 'estudo', useImages: S().settings.useImages !== false, enamed: Q.Enamed.enabled(), filter: Object.assign({}, V.filter()) }, extra));
     },
     start(opts) {
@@ -39,6 +44,8 @@
       const preset = S().ui.examPreset;
       if (preset) { cfg.materialIds = preset.materialIds.filter((id) => Q.Store.material(id)); delete S().ui.examPreset; }
       if (!cfg.materialIds) cfg.materialIds = shown.map((m) => m.id);
+      cfg.known = cfg.known || new Set(cfg.materialIds);
+      S().materials.forEach((m) => { if (!cfg.known.has(m.id)) { cfg.known.add(m.id); if (shown.some((x) => x.id === m.id)) cfg.materialIds.push(m.id); } });
       cfg.materialIds = cfg.materialIds.filter((id) => Q.Store.material(id));
       const useImg = S().settings.useImages !== false;
       const fullPool = effective(cfg.materialIds);
@@ -58,7 +65,7 @@
         return `<div class="opt-card mt-s" style="flex-direction:column;gap:10px;cursor:default">
           <div class="row gap" style="align-items:center"><input type="checkbox" data-change="cfg-mat" value="${m.id}" ${on ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent2)" aria-label="Selecionar ${esc(m.title)}">
             <span style="flex:1"><b>${esc(m.title)}</b><small>${esc(m.materia)} · ${esc(m.periodo)} · ${esc(m.curso)}</small></span>
-            <span class="chip">${act.length - exc}/${act.length} temas</span>
+            ${cov.questions ? `<span class="chip">${act.length - exc}/${act.length} temas</span><span class="chip">${cov.questions} questões</span>` : `<span class="badge b-warn">sem questões</span><button class="btn sm primary" data-act="mk-q" data-id="${m.id}">✨ Criar questões</button>`}
             <button class="btn sm ghost" data-act="cfg-open" data-id="${m.id}" aria-expanded="${open}">${open ? '▲ Ocultar temas' : '▼ Escolher temas'}</button></div>
           ${open ? `<div style="padding:4px 0 2px 32px;display:grid;gap:4px">
             <div class="row gap"><button class="btn sm" data-act="topics-all" data-id="${m.id}">Todos os temas</button><button class="btn sm ghost" data-act="topics-none" data-id="${m.id}">Nenhum</button></div>
@@ -85,7 +92,9 @@ ${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ati
             <div class="insight"><span class="em">🔀</span><div><b>Gabarito balanceado</b><small class="muted">Letras certas distribuídas por igual; no máximo ${S().settings.maxRun || 2} iguais seguidas; sem escadas nem alternâncias.</small></div></div>
             <div class="insight"><span class="em">📏</span><div><b>Sem “a maior é a certa”</b><small class="muted">O teto de questões em que a correta é a mais longa fica no nível do acaso.</small></div></div>
             <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Chutes e respostas rápidas demais não contam como domínio.</small></div></div></div>` : ''}
-          <button class="btn primary lg" data-act="start" ${pool ? '' : 'disabled'}>▶ Simular ${pool ? n + ' questões' : ''}</button>
+          ${pool ? `<button class="btn primary lg" data-act="start">▶ Simular ${n} questões</button>` : `<div class="card" style="border-color:var(--warn)"><b>Ainda não há questões para simular</b>
+            <p class="muted" style="margin:6px 0 12px">${cfg.materialIds.length ? 'Os materiais marcados não têm questões (ou nenhuma bate com o nível escolhido). Crie as questões primeiro.' : 'Marque ao menos um material.'}</p>
+            ${(() => { const e = cfg.materialIds.map(Q.Store.material).filter(Boolean).find((m) => !Q.Store.questionsOf(m.id).length); return e ? `<button class="btn primary" data-act="mk-q" data-id="${e.id}">✨ Criar questões de “${esc(e.title.slice(0, 28))}”</button>` : ''; })()}</div>`}
         </div>
       </div>`;
     },

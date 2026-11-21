@@ -116,8 +116,8 @@
         return `<div class="card mat-card">
           <div><h3><a href="#/biblioteca/${m.id}">${esc(m.title)}</a></h3><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}</div></div>
           ${imgs.length ? `<div class="thumbs">${imgs.map((i) => V.img(i.id, 'thumb')).join('')}</div>` : ''}
-          <div class="stat-row"><div class="stat"><b>${cov.total}</b><small>temas (slides)</small></div><div class="stat"><b>${cov.questions}</b><small>questões</small></div><div class="stat"><b>${Math.round(cov.usage * 100)}%</b><small>cobertos</small></div></div>
-          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><button class="btn sm" data-act="mk-q" data-id="${m.id}">✨ Criar questões</button>${Q.isCreator() ? `<a class="btn sm ghost" href="#/banco/${m.id}">Banco</a>` : ''}<button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn sm danger" data-act="del-mat" data-id="${m.id}">🗑 Excluir</button></div></div>`;
+          <div class="stat-row"><div class="stat"><b>${cov.total}</b><small>temas (slides)</small></div><div class="stat"><b style="${cov.questions ? '' : 'color:var(--warn)'}">${cov.questions}</b><small>${cov.questions ? 'questões' : 'sem questões — crie'}</small></div><div class="stat"><b>${Math.round(cov.usage * 100)}%</b><small>cobertos</small></div></div>
+          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><button class="btn sm ${cov.questions ? '' : 'primary'}" data-act="mk-q" data-id="${m.id}">✨ Criar questões</button>${Q.isCreator() ? `<a class="btn sm ghost" href="#/banco/${m.id}">Banco</a>` : ''}<button class="btn sm ${cov.questions ? 'primary' : ''}" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn sm danger" data-act="del-mat" data-id="${m.id}">🗑 Excluir</button></div></div>`;
       }).join('')}</div>`;
     },
     mount() {
