@@ -336,11 +336,12 @@
     const tk = (s) => new Set(String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]{4,}/g) || []);
     const ot = tk(q.options[optIdx]);
     let best = null;
-    if (m && ot.size) m.topics.filter((t) => !t.ignored).forEach((t) => (t.text || '').split('\n').forEach((l) => {
+    // só aponta um trecho quando a alternativa tem conteúdo suficiente para uma correspondência confiável
+    if (m && ot.size >= 2) m.topics.filter((t) => !t.ignored).forEach((t) => (t.text || '').split('\n').forEach((l) => {
       const hit = [...tk(l)].filter((w) => ot.has(w)).length;
-      if (hit >= Math.min(2, ot.size) && (!best || hit > best.hit)) best = { hit, t, l: l.trim() };
+      if (hit >= 2 && hit >= Math.ceil(ot.size * 0.6) && (!best || hit > best.hit)) best = { hit, t, l: l.trim() };
     }));
-    if (!best) return 'Essa alternativa não corresponde ao que o material afirma sobre o assunto perguntado.';
+    if (!best) return 'Essa alternativa não é a que o material indica para o que foi perguntado. Veja abaixo a justificativa da correta.';
     const same = (q.topicIds || []).includes(best.t.id);
     return same ? `O slide ${best.t.n} diz: “${best.l}”. Isso não responde ao que foi perguntado.` : `Esse conteúdo aparece em outro ponto do material (slide ${best.t.n}, “${best.t.title}”: “${best.l}”) e não responde ao que foi perguntado.`;
   };

@@ -224,3 +224,24 @@ ol.steps { counter-reset: st; list-style: none; padding: 0; margin: 18px 0 0; di
 ol.steps > li { counter-increment: st; position: relative; padding-left: 46px; }
 ol.steps > li::before { content: counter(st); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; background: var(--grad); color: var(--accent-ink); }
 ol.steps p { margin: 4px 0 10px; }
+
+/* ===== Disputas (estilo Kahoot) ===== */
+:root { --ka: #e5484d; --kb: #3b82f6; --kc: #f5a524; --kd: #22c55e; }
+.kt { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.kt-o { display: flex; align-items: center; gap: 14px; text-align: left; min-height: 96px; padding: 14px 18px; border: 0; border-radius: 16px; color: #fff; font-weight: 700; font-size: 1.05rem; box-shadow: 0 5px 0 rgba(0,0,0,.28); transition: transform .1s, filter .15s, opacity .2s; }
+.kt-o:hover:not([disabled]) { transform: translateY(-2px); filter: brightness(1.08); } .kt-o:active:not([disabled]) { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.28); }
+.kt-o.ka { background: var(--ka); } .kt-o.kb { background: var(--kb); } .kt-o.kc { background: var(--kc); color: #2a1d00; } .kt-o.kd { background: var(--kd); color: #04210e; }
+.kt-l { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; font-weight: 800; background: rgba(0,0,0,.25); font-size: 1.1rem; } .kc .kt-l, .kd .kt-l { background: rgba(0,0,0,.18); }
+.kt-o[disabled] { cursor: default; } .kt-o.dim { opacity: .35; } .kt-o.right { outline: 4px solid #fff; box-shadow: 0 0 22px rgba(255,255,255,.5); } .kt-o.picked:not(.right) { outline: 3px dashed #fff; }
+.du-bar { height: 12px; border-radius: 12px; background: var(--track); overflow: hidden; margin-bottom: 14px; } .du-bar i { display: block; height: 100%; width: 100%; background: var(--grad); transition: width .25s linear; } .du-bar i.low { background: var(--bad); }
+.du-lobby { text-align: center; padding: 34px 20px; } .du-code { font-size: clamp(2.4rem, 8vw, 4rem); font-weight: 900; letter-spacing: .25em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; margin: 6px 0; }
+.du-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; } .chip.on { border-color: var(--accent2); color: var(--text); }
+.lb { display: grid; gap: 8px; } .lb-r { display: grid; grid-template-columns: 44px minmax(90px, 1.1fr) 2fr 56px 92px; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); } .lb-r.me { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 12%, transparent); }
+.lb-p { font-weight: 800; text-align: center; } .lb-n { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .lb-bar { height: 10px; border-radius: 10px; background: var(--track); overflow: hidden; } .lb-bar i { display: block; height: 100%; background: var(--grad); border-radius: 10px; animation: grow .8s cubic-bezier(.2,.8,.2,1) both; transform-origin: left; } .lb-c, .lb-s { text-align: right; font-variant-numeric: tabular-nums; } .lb-s { color: var(--muted); font-size: .85rem; }
+.podium { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; max-width: 560px; margin: 18px auto 22px; } .pd { text-align: center; } .pd-n { font-weight: 800; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-b { border-radius: 16px 16px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 12px 6px; background: var(--grad); color: var(--accent-ink); animation: rise .6s ease both; } .pd-b span { font-size: 1.8rem; } .pd-b b { font-size: 1.6rem; } .pd-b small { opacity: .85; }
+.pd.p1 .pd-b { height: 200px; } .pd.p2 .pd-b { height: 160px; filter: saturate(.8); } .pd.p3 .pd-b { height: 130px; filter: saturate(.65); }
+.du-card h3 { margin-top: 10px; }
+@media (max-width: 640px) { .kt { grid-template-columns: 1fr; } .kt-o { min-height: 72px; } .lb-r { grid-template-columns: 34px 1fr 54px 80px; } .lb-bar { display: none; } }
+
+.pd-b small { color: var(--accent-ink); opacity: .9; }

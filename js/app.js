@@ -9,10 +9,11 @@
     ['banco', '📝', 'Questões'],
     ['simulado', '⚡', 'Simulado'],
     ['desempenho', '📊', 'Desempenho'],
+    ['disputas', '⚔️', 'Disputas'],
     ['ranking', '🏆', 'Ranking'],
     ['ajustes', '⚙️', 'Ajustes'],
   ];
-  const ROUTES = { inicio: 'home', biblioteca: 'library', banco: 'bank', simulado: 'exam', prova: 'run', resultado: 'result', desempenho: 'perf', ranking: 'rank', ajustes: 'settings' };
+  const ROUTES = { inicio: 'home', biblioteca: 'library', banco: 'bank', simulado: 'exam', prova: 'run', resultado: 'result', desempenho: 'perf', ranking: 'rank', disputas: 'duel', ajustes: 'settings' };
   const NO_FILTER = new Set(['prova', 'resultado', 'ajustes', 'banco']);
 
   const App = (Q.App = { cur: null, view: null });

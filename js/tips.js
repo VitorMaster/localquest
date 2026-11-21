@@ -60,6 +60,12 @@
     'rk-demo': 'Mostra como será a disputa do grupo com participantes fictícios. Nada é gravado.',
     'rk-round': 'Simula uma nova rodada de estudos: cada colega responde mais questões e as posições mudam.',
     'rk-demo-off': 'Volta para o ranking real.',
+    'du-tab': 'Troca entre Agenda, Criar e Entrar com código.', 'du-nick': 'Salva o nome que aparece nas disputas.', 'du-copy': 'Copia o código da disputa para compartilhar.',
+    'du-del': 'Exclui esta disputa para todos.', 'dc-kind': 'Escolhe entre disputa em casa (com prazo) e ao vivo (sala comandada por você).', 'dc-create': 'Cria a disputa com as questões dos materiais marcados.',
+    'du-join': 'Abre a disputa com o código informado.', 'du-demo': 'Mostra uma disputa ao vivo de mentirinha, com 5 colegas virtuais. Nada é enviado a ninguém.',
+    'du-joinlive': 'Entra na sala para participar.', 'du-start': 'Inicia a disputa: a primeira questão aparece para todos.', 'du-reveal': 'Encerra o tempo agora e mostra a resposta certa.',
+    'du-nextlive': 'Avança para a próxima questão (ou mostra o pódio na última).', 'du-pick': 'Marca esta alternativa. Atalho: teclas A, B, C ou D.',
+    'du-run': 'Começa (ou continua) a responder esta disputa.', 'du-next': 'Vai para a próxima questão.',
     'rk-join': 'Entra em um grupo de estudo com o código recebido.',
     'rk-create': 'Cria um grupo de estudo e gera o código para convidar colegas.',
     'rk-leave': 'Sai deste grupo de estudo.',
@@ -78,7 +84,7 @@
   const NAV = {
     '#/inicio': 'Painel com seu domínio, cobertura e próximos passos.', '#/biblioteca': 'Seus materiais (slides) e temas.',
     '#/banco': 'Banco de questões: crie, edite e revise.', '#/simulado': 'Monte e inicie uma prova.',
-    '#/desempenho': 'Seu desempenho por matéria, período e curso.', '#/ranking': 'Ranking entre usuários e grupos de estudo.',
+    '#/desempenho': 'Seu desempenho por matéria, período e curso.', '#/disputas': 'Disputas estilo Kahoot: em casa na sua hora ou ao vivo com o grupo, com agenda.', '#/ranking': 'Ranking entre usuários e grupos de estudo.',
     '#/ajustes': 'Preferências, versão avançada, ENAMED e backup.',
   };
   const CHANGE = {
