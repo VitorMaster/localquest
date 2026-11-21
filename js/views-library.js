@@ -9,13 +9,13 @@
   };
 
   function openUpload() {
-    let file = null;
+    let files = [];
     const f = V.filter();
     const mod = Q.modal(`
       <div class="eyebrow">Novo material</div><h2>Enviar slides da aula</h2>
-      <p class="muted">Aceita <b>.pptx</b> (texto + imagens de cada slide) e <b>.pdf</b> (texto + imagem da página). Tudo é processado no seu navegador — nada sai do seu computador.</p>
-      <div class="drop" id="drop"><div class="big">📑</div><b id="drop-t">Arraste o arquivo aqui ou clique para escolher</b><br><small class="muted">PPTX ou PDF</small>
-        <input type="file" id="file" accept=".pptx,.pdf" hidden></div>
+      <p class="muted">Envie quantos materiais quiser. As questões são criadas <b>automaticamente</b> a partir dos slides. Aceita <b>.pptx</b> (texto + imagens de cada slide) e <b>.pdf</b> (texto + imagem da página). Tudo é processado no seu navegador — nada sai do seu computador.</p>
+      <div class="drop" id="drop"><div class="big">📑</div><b id="drop-t">Arraste os arquivos aqui ou clique para escolher</b><br><small class="muted">PPTX ou PDF — pode enviar vários de uma vez</small>
+        <input type="file" id="file" accept=".pptx,.pdf" multiple hidden></div>
       <div class="mt grid g2">
         <div class="field"><label>Curso</label><input type="text" id="u-curso" list="dl-curso" placeholder="Ex.: Fisioterapia" value="${esc(f.curso || '')}"></div>
         <div class="field"><label>Período</label><input type="text" id="u-periodo" list="dl-periodo" placeholder="Ex.: 6º período" value="${esc(f.periodo || '')}"></div>
@@ -26,37 +26,48 @@
       <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="u-go" disabled>Ler slides</button></div>`);
     const el = mod.el, $ = (s) => Q.$(s, el);
     const drop = $('#drop'), inp = $('#file');
-    const setFile = (fl) => {
-      if (!fl) return;
-      if (!Q.Ingest.accepts(fl)) return Q.toast('Envie um arquivo .pptx ou .pdf', 'bad');
-      file = fl;
-      $('#drop-t').textContent = '✅ ' + fl.name;
-      if (!$('#u-title').value) $('#u-title').value = fl.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
+    const setFile = (list) => {
+      const ok = Array.from(list || []).filter(Q.Ingest.accepts);
+      if (!ok.length) return Q.toast('Envie arquivos .pptx ou .pdf', 'bad');
+      files = ok;
+      $('#drop-t').textContent = '✅ ' + (ok.length === 1 ? ok[0].name : ok.length + ' arquivos: ' + ok.map((f) => f.name).join(', '));
+      $('#u-title').disabled = ok.length > 1;
+      $('#u-title').placeholder = ok.length > 1 ? 'Cada arquivo usa o próprio nome' : 'Ex.: Aula 3 — Avaliação funcional';
+      if (ok.length === 1 && !$('#u-title').value) $('#u-title').value = ok[0].name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
+      if (ok.length > 1) $('#u-title').value = '';
       $('#u-go').disabled = false;
     };
     drop.addEventListener('click', () => inp.click());
-    inp.addEventListener('change', () => setFile(inp.files[0]));
+    inp.addEventListener('change', () => setFile(inp.files));
     ['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', (e) => setFile(e.dataTransfer.files[0]));
+    drop.addEventListener('drop', (e) => setFile(e.dataTransfer.files));
     $('#u-go').addEventListener('click', async () => {
       const meta = { title: $('#u-title').value.trim(), curso: $('#u-curso').value.trim(), periodo: $('#u-periodo').value.trim(), materia: $('#u-materia').value.trim() };
-      if (!meta.title || !meta.curso || !meta.periodo || !meta.materia) return Q.toast('Preencha curso, período, matéria e título.', 'warn');
+      if ((files.length === 1 && !meta.title) || !meta.curso || !meta.periodo || !meta.materia) return Q.toast('Preencha curso, período e matéria' + (files.length === 1 ? ' e o título.' : '.'), 'warn');
       $('#u-go').disabled = true;
       $('#u-prog').hidden = false;
+      const made = [];
+      let qn = 0;
       try {
-        const parsed = await Q.Ingest.parse(file, (p, msg) => {
-          $('#u-prog i').style.width = Math.round(p * 100) + '%';
-          $('#u-msg').textContent = msg;
-        });
-        const m = Q.Ingest.createMaterial(meta, parsed);
+        for (let k = 0; k < files.length; k++) {
+          const f = files[k];
+          const parsed = await Q.Ingest.parse(f, (p, msg) => {
+            $('#u-prog i').style.width = Math.round(((k + p) / files.length) * 100) + '%';
+            $('#u-msg').textContent = `Arquivo ${k + 1} de ${files.length}: ${msg}`;
+          });
+          const title = files.length === 1 ? meta.title : f.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
+          const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title }), parsed);
+          qn += Q.Autogen.fill(m);
+          made.push(m);
+        }
         mod.close();
-        const imgs = parsed.topics.reduce((s, t) => s + t.images.length, 0);
-        Q.toast(`${parsed.topics.length} slides lidos, ${imgs} imagem(ns) extraída(s)`, 'good', 6000);
-        Q.go('#/biblioteca/' + m.id);
+        Q.toast(`${made.length} material(is) adicionado(s) e ${qn} questões criadas automaticamente. Já pode simular!`, 'good', 6000);
+        Q.go(made.length === 1 ? '#/biblioteca/' + made[0].id : '#/biblioteca');
       } catch (e) {
         console.error(e);
-        Q.toast(e.message || 'Falha ao ler o arquivo', 'bad', 6000);
+        Q.toast((files[made.length] ? files[made.length].name + ': ' : '') + (e.message || 'Falha ao ler o arquivo'), 'bad', 7000);
+        if (made.length) Q.App.refreshQuiet();
         $('#u-go').disabled = false;
       }
     });
@@ -70,7 +81,7 @@
       if (params && params[0]) return this.detail(params[0]);
       const mats = E.materials(V.filter());
       const head = `<div class="page-h"><div><div class="eyebrow">Biblioteca</div><h1>Seus materiais</h1><p>Os slides das aulas são a única fonte das questões.</p></div>
-        <button class="btn primary" data-act="new">📤 Adicionar slides</button></div>`;
+        <div class="row wrap gap"><button class="btn primary" data-act="sim-all">▶ Simular todos</button><button class="btn" data-act="new">📤 Adicionar slides</button></div></div>`;
       if (!S().materials.length) return head + `<div class="card empty"><div class="big">📚</div><h3>Nenhum material ainda</h3><p class="muted">Envie um PPTX ou PDF para começar.</p><button class="btn primary" data-act="new">Enviar slides</button> <button class="btn" data-act="demo">Ver exemplo</button></div>`;
       if (!mats.length) return head + '<div class="card empty"><p class="muted">Nenhum material corresponde ao filtro atual.</p></div>';
       return head + `<div class="grid g-auto">${mats.map((m) => {
@@ -80,7 +91,7 @@
           <div><h3><a href="#/biblioteca/${m.id}">${esc(m.title)}</a></h3><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}</div></div>
           ${imgs.length ? `<div class="thumbs">${imgs.map((i) => V.img(i.id, 'thumb')).join('')}</div>` : ''}
           <div class="stat-row"><div class="stat"><b>${cov.total}</b><small>temas (slides)</small></div><div class="stat"><b>${cov.questions}</b><small>questões</small></div><div class="stat"><b>${Math.round(cov.usage * 100)}%</b><small>cobertos</small></div></div>
-          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><a class="btn sm" href="#/banco/${m.id}">Questões</a><button class="btn sm" data-act="sim" data-id="${m.id}">Simular</button></div></div>`;
+          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><a class="btn sm" href="#/banco/${m.id}">Questões</a><button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button></div></div>`;
       }).join('')}</div>`;
     },
     mount() {
@@ -92,7 +103,8 @@
     act: {
       new: () => openUpload(),
       demo: async () => { await Q.Demo.load({ history: true }); Q.toast('Exemplo carregado', 'good'); Q.App.refresh(); },
-      sim: (el) => { S().ui.examPreset = { materialIds: [el.dataset.id] }; Q.go('#/simulado'); },
+      sim: (el) => Q.Exam.quick([el.dataset.id]),
+      'sim-all': () => Q.Exam.quick(E.materials(V.filter()).map((m) => m.id)),
       ...detailActs(),
     },
 

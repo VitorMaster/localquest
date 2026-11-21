@@ -66,9 +66,9 @@
             <h1>${hasData ? `Domínio real de <span class="grad-text">${Math.round(sm.real * 100)}%</span>` : 'Faça seu primeiro <span class="grad-text">simulado</span>'}</h1>
             <p class="muted" style="max-width:48ch;margin:8px 0 20px">${hasData
               ? `${sm.n} respostas em ${series.length} prova(s). O domínio real desconta chutes e acertos por sorte — é o número que importa.`
-              : `Você tem ${mats.length} material(is) e ${qTotal} questões prontas. O simulado inteligente escolhe o que mais ajuda a cobrir o conteúdo.`}</p>
+              : `Você tem ${mats.length} material(is) e ${qTotal} questões prontas. Um toque em “Simular tudo” já monta a prova com todas elas.`}</p>
             <div class="row wrap gap">
-              <button class="btn primary lg" data-act="quick-start" ${qTotal ? '' : 'disabled'}>⚡ Simulado inteligente</button>
+              <button class="btn primary lg" data-act="quick-start">⚡ Simular tudo</button>
               <a class="btn lg" href="#/simulado">Configurar prova</a>
               ${st.session ? '<a class="btn lg" href="#/prova">▶ Continuar prova</a>' : ''}
             </div>
@@ -112,8 +112,7 @@
     },
     act: {
       'quick-start': () => {
-        const ids = E.materials(V.filter()).filter((m) => Q.Store.questionsOf(m.id).length).map((m) => m.id);
-        Q.Exam.start({ materialIds: ids, n: 10, strategy: 'misto', mode: 'prova', filter: Object.assign({}, V.filter()) });
+        Q.Exam.quick(E.materials(V.filter()).map((m) => m.id));
       },
       'load-demo': async () => {
         await Q.Demo.load({ history: true });

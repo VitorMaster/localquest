@@ -169,7 +169,7 @@
       const all = S().materials;
       return `
       <div class="page-h"><div><div class="eyebrow">Banco</div><h1>Banco de questões</h1><p>Questões vinculadas aos slides — é isso que alimenta o mapa de cobertura.</p></div>
-        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Gerar com IA</button></div></div>
+        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="autogen">⚙️ Gerar automaticamente</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Gerar com IA</button></div></div>
       <div class="card mb"><div class="row between wrap gap">
         <div class="field" style="margin:0;min-width:260px"><label>Material</label><select data-change="bank-mat">${all.map((x) => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.materia)} · ${esc(x.title)}</option>`).join('')}</select></div>
         <div class="stat-row" style="margin:0;flex:1;min-width:300px"><div class="stat"><b>${qs.length}</b><small>questões</small></div><div class="stat"><b>${cov.inBank}/${cov.total}</b><small>slides com questão</small></div><div class="stat"><b style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad}</b><small>com pistas graves</small></div><div class="stat"><b>${Q.pct(qs.filter((q) => (q.imageIds || []).length).length, qs.length)}%</b><small>com imagem (ideal ≤ 20%)</small></div><div class="stat"><b>${longest}%</b><small>certa é a maior (ideal ≈ 25%)</small></div></div></div>
@@ -180,7 +180,7 @@
           const tn = (q.topicIds || []).map((tid) => (Q.Store.topic(m.id, tid) || {}).n).filter(Boolean).sort((a, b) => a - b);
           const w = G.worstLevel(issues);
           return `<div class="q-item"><div>
-            <div class="row wrap gap" style="margin-bottom:6px">${tn.length ? `<span class="chip">Slide${tn.length > 1 ? 's' : ''} ${tn.join(', ')}</span>` : '<span class="badge b-warn">sem slide</span>'}${(q.imageIds || []).length ? `<span class="chip">🖼️ ${(q.imageIds || []).length}</span>` : ''}<span class="chip">${['', 'Fácil', 'Média', 'Difícil'][q.difficulty || 2]}</span>${q.origin === 'ai' ? '<span class="chip">IA</span>' : ''}<span class="badge ${w === 'ok' ? 'b-good' : w === 'warn' ? 'b-warn' : 'b-bad'}">${w === 'ok' ? 'sem pistas' : w === 'warn' ? 'avisos' : 'pistas graves'}</span></div>
+            <div class="row wrap gap" style="margin-bottom:6px">${tn.length ? `<span class="chip">Slide${tn.length > 1 ? 's' : ''} ${tn.join(', ')}</span>` : '<span class="badge b-warn">sem slide</span>'}${(q.imageIds || []).length ? `<span class="chip">🖼️ ${(q.imageIds || []).length}</span>` : ''}<span class="chip">${['', 'Fácil', 'Média', 'Difícil'][q.difficulty || 2]}</span>${q.origin === 'ai' ? '<span class="chip">IA</span>' : q.origin === 'auto' ? '<span class="chip">auto</span>' : ''}<span class="badge ${w === 'ok' ? 'b-good' : w === 'warn' ? 'b-warn' : 'b-bad'}">${w === 'ok' ? 'sem pistas' : w === 'warn' ? 'avisos' : 'pistas graves'}</span></div>
             <div class="stem">${rows.indexOf(rows.find((r) => r.q === q)) + 1}. ${esc(q.stem)}</div>
             ${(q.imageIds || []).length ? `<div class="thumbs" style="margin:6px 0">${q.imageIds.map((id) => `<button style="border:0;background:none;padding:0" data-act="zoom-img" data-img="${id}">${V.img(id, 'thumb')}</button>`).join('')}</div>` : ''}
             <ul class="q-opts">${q.options.map((o, k) => `<li class="${k === q.correct ? 'ok' : ''}">${Q.LETTERS[k]}) ${esc(o)}${k === q.correct ? ' ✔' : ''}</li>`).join('')}</ul>
@@ -196,6 +196,12 @@
           S().questions = S().questions.filter((q) => q.id !== el.dataset.id);
           Q.Store.save(); Q.App.refresh();
         }
+      },
+      autogen: () => {
+        const m = Q.Store.material(Q.Views.bank.curId);
+        const n = Q.Autogen.fill(m);
+        Q.toast(n ? `${n} questões criadas para os slides sem questão` : 'Todos os slides já têm questões', n ? 'good' : 'info');
+        Q.App.refresh();
       },
       import: () => openImport(Q.Store.material(Q.Views.bank.curId)),
       prompt: () => openPrompt(Q.Store.material(Q.Views.bank.curId)),

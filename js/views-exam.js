@@ -2,9 +2,18 @@
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, G = Q.Guard, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;
-  const cfg = { materialIds: null, n: 10, strategy: 'misto', mode: 'prova', timer: 0 };
+  const cfg = { materialIds: null, n: 0, strategy: 'misto', mode: 'prova', timer: 0 };
 
   Q.Exam = {
+    /** Um toque: gera questões que faltem e simula TODAS as questões dos materiais. */
+    quick(materialIds, extra = {}) {
+      const ids = materialIds.filter((id) => Q.Store.material(id));
+      if (!ids.length) return Q.toast('Envie ao menos um material na Biblioteca.', 'warn');
+      Q.Autogen.ensure(ids);
+      const pool = E.pool(ids).length;
+      if (!pool) return Q.toast('Não consegui criar questões com o texto desses slides.', 'warn');
+      this.start(Object.assign({ materialIds: ids, n: pool, strategy: 'misto', mode: 'prova', useImages: S().settings.useImages !== false, filter: Object.assign({}, V.filter()) }, extra));
+    },
     start(opts) {
       if (!opts.materialIds.length) return Q.toast('Selecione ao menos um material com questões.', 'warn');
       const ses = E.buildSession(opts);
@@ -26,28 +35,30 @@
   Q.Views.exam = {
     title: 'Simulado',
     render() {
-      const mats = E.materials(V.filter()).filter((m) => Q.Store.questionsOf(m.id).length);
+      const mats = E.materials(V.filter());
+      Q.Autogen.ensure(S().materials.map((m) => m.id));
       const preset = S().ui.examPreset;
       if (preset) { cfg.materialIds = preset.materialIds.filter((id) => Q.Store.material(id)); delete S().ui.examPreset; }
       if (!cfg.materialIds) cfg.materialIds = mats.map((m) => m.id);
-      cfg.materialIds = cfg.materialIds.filter((id) => Q.Store.material(id) && Q.Store.questionsOf(id).length);
+      cfg.materialIds = cfg.materialIds.filter((id) => Q.Store.material(id));
       const useImg = S().settings.useImages !== false;
       const fullPool = E.pool(cfg.materialIds);
       const imgQs = fullPool.filter((q) => (q.imageIds || []).length).length;
       const pool = useImg ? fullPool.length : fullPool.length - imgQs;
       const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
-      const allMats = S().materials.filter((m) => Q.Store.questionsOf(m.id).length);
+      const allMats = S().materials;
       const sesBanner = S().session ? `<div class="card mb row between wrap gap" style="border-color:var(--accent2)"><div><b>Você tem uma prova em andamento</b><br><small class="muted">${S().session.items.filter((i) => i.a).length} de ${S().session.items.length} respondidas.</small></div><a class="btn primary" href="#/prova">▶ Continuar</a></div>` : '';
-      if (!allMats.length) return '<div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1></div></div><div class="card empty"><div class="big">🧩</div><h3>Sem questões ainda</h3><p class="muted">Crie ou importe questões no Banco para poder simular.</p><a class="btn primary" href="#/banco">Ir para o Banco</a></div>';
+      if (!allMats.length) return '<div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1></div></div><div class="card empty"><div class="big">📚</div><h3>Nenhum material ainda</h3><p class="muted">Envie os slides e as questões são criadas automaticamente.</p><a class="btn primary" href="#/biblioteca">Enviar slides</a></div>';
       return `${sesBanner}
       <div class="page-h"><div><div class="eyebrow">Simulado</div><h1>Montar prova</h1><p>Use o filtro acima para restringir curso, período e matéria.</p></div></div>
       <div class="split">
         <div class="grid" style="align-content:start">
-          <div class="card"><h3>1 · Materiais <span class="sub">${cfg.materialIds.length} selecionado(s)</span></h3>
+          <div class="card"><div class="row between wrap gap"><h3 style="margin:0">1 · Materiais <span class="sub">${cfg.materialIds.length} de ${(mats.length ? mats : allMats).length} selecionado(s)</span></h3>
+              <div class="row gap"><button class="btn sm" data-act="mat-all">✔ Selecionar todos</button><button class="btn sm ghost" data-act="mat-none">Limpar</button></div></div>
             ${(mats.length ? mats : allMats).map((m) => { const cov = E.coverage(m); return `<label class="opt-card mt-s" style="align-items:center"><input type="checkbox" data-change="cfg-mat" value="${m.id}" ${cfg.materialIds.includes(m.id) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent2)">
               <span style="flex:1"><b>${esc(m.title)}</b><small>${esc(m.materia)} · ${esc(m.periodo)} · ${esc(m.curso)}</small></span><span class="chip">${cov.questions} questões</span><span class="chip">${Math.round(cov.usage * 100)}% cobertos</span></label>`; }).join('')}</div>
           <div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🖼️ Usar imagens nas questões</h3><small class="muted">${useImg ? `Ligado: só ${imgQs} questão(ões) do banco levam figura, e no máximo ~1 a cada 4 na prova.` : `Desligado: ${imgQs} questão(ões) que dependem de figura ficam de fora desta prova.`}</small></div>${V.imgSwitch()}</div></div>
-          <div class="card"><h3>2 · Quantidade</h3><div class="seg">${[5, 10, 15, 20, 30, 50, 0].map((v) => `<button data-act="cfg-n" data-v="${v}" class="${cfg.n === v ? 'on' : ''}">${v === 0 ? 'Todas' : v}</button>`).join('')}</div>
+          <div class="card"><h3>2 · Quantidade</h3><div class="seg">${[0, 5, 10, 15, 20, 30, 50].map((v) => `<button data-act="cfg-n" data-v="${v}" class="${cfg.n === v ? 'on' : ''}">${v === 0 ? 'Todas' : v}</button>`).join('')}</div>
             <p class="muted mt-s">${pool ? `${n} de ${pool} questões disponíveis.` : 'Nenhuma questão no escopo.'}${cfg.n > pool && pool ? ' (o banco tem menos questões que o pedido)' : ''}</p></div>
           <div class="card"><h3>3 · Estratégia</h3><div class="grid g2">${STRATS.map(([k, em, t, d]) => `<button class="opt-card ${cfg.strategy === k ? 'on' : ''}" data-act="cfg-strat" data-v="${k}"><span class="em">${em}</span><span><b>${t}</b><small class="muted">${d}</small></span></button>`).join('')}</div></div>
           <div class="card"><h3>4 · Modo</h3><div class="grid g2">
@@ -61,11 +72,13 @@
             <div class="insight"><span class="em">📏</span><div><b>Sem “a maior é a certa”</b><small class="muted">O teto de questões em que a correta é a mais longa fica no nível do acaso.</small></div></div>
             <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Certeza, dúvida ou chute. Chutes e respostas rápidas demais não contam como domínio.</small></div></div>
             <div class="insight"><span class="em">🔁</span><div><b>Letras embaralhadas</b><small class="muted">As alternativas mudam de posição a cada prova — decorar “a letra” não funciona.</small></div></div></div>
-          <button class="btn primary lg" data-act="start" ${pool ? '' : 'disabled'}>▶ Iniciar ${pool ? n + ' questões' : ''}</button>
+          <button class="btn primary lg" data-act="start" ${pool ? '' : 'disabled'}>▶ Simular ${pool ? n + ' questões' : ''}</button>
         </div>
       </div>`;
     },
     act: {
+      'mat-all': () => { cfg.materialIds = (E.materials(V.filter()).length ? E.materials(V.filter()) : S().materials).map((m) => m.id); Q.App.refresh(); },
+      'mat-none': () => { cfg.materialIds = []; Q.App.refresh(); },
       'cfg-n': (el) => { cfg.n = +el.dataset.v; Q.App.refresh(); },
       'cfg-strat': (el) => { cfg.strategy = el.dataset.v; Q.App.refresh(); },
       'cfg-mode': (el) => { cfg.mode = el.dataset.v; Q.App.refresh(); },
