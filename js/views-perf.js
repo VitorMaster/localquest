@@ -80,6 +80,7 @@
         <div class="card"><h3>🛡️ Anti-chute</h3><p class="muted">Máximo de letras certas iguais seguidas no gabarito.</p><div class="seg">${[1, 2, 3].map((n) => `<button data-act="maxrun" data-v="${n}" class="${(st.maxRun || 2) === n ? 'on' : ''}">${n}</button>`).join('')}</div><p class="muted mt-s"><small>Padrão 2: AA é permitido, AAA não. Escadas (A-B-C) e alternâncias (A-B-A-B) sempre são evitadas.</small></p></div>
         <div class="card"><h3>✨ Geração de questões por IA <span class="sub">opcional</span></h3>
           <p class="muted">Cole sua chave da API da Anthropic para gerar questões a partir dos slides direto no Banco. A chave fica apenas neste navegador e é enviada só para a API.</p>
+          <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px"><input type="checkbox" id="aiq" ${st.aiQuality ? 'checked' : ''} style="margin-top:4px"><span><b>Qualidade da IA ao enviar materiais</b><br><small class="muted">Com chave cadastrada, cada material novo recebe questões elaboradas pela IA no lugar das automáticas. Sem chave ou se a IA falhar, ficam as automáticas.</small></span></label>
           <div class="field"><label>Chave de API</label><input type="password" id="apikey" value="${esc(st.apiKey)}" placeholder="sk-ant-…" autocomplete="off"></div>
           <div class="field"><label>Modelo</label><input type="text" id="model" value="${esc(st.model)}"></div>
           <button class="btn primary" data-act="save-ai">Salvar</button></div>
@@ -94,7 +95,7 @@
     act: {
       theme: (el) => { S().settings.theme = el.dataset.v; Q.Store.save(); Q.App.applyTheme(); Q.App.refresh(); },
       maxrun: (el) => { S().settings.maxRun = +el.dataset.v; Q.Store.save(); Q.App.refresh(); },
-      'save-ai': () => { S().settings.apiKey = Q.$('#apikey').value.trim(); S().settings.model = Q.$('#model').value.trim() || 'claude-sonnet-5-5'; Q.Store.save(); Q.toast('Configuração salva', 'good'); },
+      'save-ai': () => { S().settings.apiKey = Q.$('#apikey').value.trim(); S().settings.aiQuality = Q.$('#aiq').checked; S().settings.model = Q.$('#model').value.trim() || 'claude-sonnet-5-5'; Q.Store.save(); Q.toast('Configuração salva', 'good'); },
       export: async () => { Q.download(`localquest-backup-${new Date().toISOString().slice(0, 10)}.json`, await Q.Store.exportAll()); },
       import: () => Q.$('#bk').click(),
       demo: async () => { await Q.Demo.load({ history: true }); Q.toast('Exemplo carregado', 'good'); Q.App.refresh(); },

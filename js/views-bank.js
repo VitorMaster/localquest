@@ -135,18 +135,21 @@
     const mod = Q.modal(`<div class="eyebrow">${esc(m.title)}</div><h2>Gerar questões com IA</h2>
       <p class="muted">O Localquest envia o texto (e a primeira figura) dos slides ativos à API e importa o resultado já passando pelo escudo anti-chute.</p>
       <div class="field"><label>Questões por slide</label><select id="ai-n">${[1, 2, 3].map((n) => `<option ${n === 2 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px"><input type="checkbox" id="ai-rep" checked style="margin-top:4px"><span><b>Substituir as questões automáticas</b><br><small class="muted">As automáticas ainda não respondidas saem; as que já entraram no seu histórico e as que você escreveu ficam.</small></span></label>
       <div id="ai-p" hidden><div class="progress"><i style="width:0"></i></div><small class="muted" id="ai-m"></small></div>
       <div class="row end gap mt"><button class="btn ghost" data-close>Fechar</button><button class="btn primary" id="ai-go">✨ Gerar</button></div>`, { sticky: true });
     const el = mod.el;
     Q.$('#ai-go', el).onclick = async () => {
       Q.$('#ai-go', el).disabled = true; Q.$('#ai-p', el).hidden = false;
       try {
-        const r = await Q.Ai.generate(m, { perSlide: +Q.$('#ai-n', el).value, onProgress: (p, msg) => { Q.$('#ai-p i', el).style.width = Math.round(p * 100) + '%'; Q.$('#ai-m', el).textContent = msg; } });
-        Q.toast(`${r.added} questões geradas${r.flagged ? ` (${r.flagged} com alertas)` : ''}${r.rejected ? `, ${r.rejected} rejeitadas` : ''}`, 'good', 6000);
+        const r = await Q.Ai.generate(m, { perSlide: +Q.$('#ai-n', el).value, replaceAuto: Q.$('#ai-rep', el).checked, onProgress: (p, msg) => { Q.$('#ai-p i', el).style.width = Math.round(p * 100) + '%'; Q.$('#ai-m', el).textContent = msg; } });
+        Q.toast(`${r.added} questões geradas pela IA${r.removed ? `, ${r.removed} automáticas substituídas` : ''}${r.flagged ? ` (${r.flagged} com alertas)` : ''}${r.rejected ? `, ${r.rejected} rejeitadas` : ''}`, 'good', 6000);
         mod.close(); Q.App.refresh();
       } catch (e) { Q.toast(e.message, 'bad', 8000); Q.$('#ai-go', el).disabled = false; Q.App.refreshQuiet(); }
     };
   }
+
+  V.openAi = openAi;
 
   /* ---------- tela ---------- */
   Q.Views.bank = {
@@ -169,7 +172,7 @@
       const all = S().materials;
       return `
       <div class="page-h"><div><div class="eyebrow">Banco</div><h1>Banco de questões</h1><p>Questões vinculadas aos slides — é isso que alimenta o mapa de cobertura.</p></div>
-        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="autogen">⚙️ Gerar automaticamente</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Gerar com IA</button></div></div>
+        <div class="row wrap gap"><button class="btn primary" data-act="new-q">➕ Nova questão</button><button class="btn" data-act="autogen">⚙️ Gerar automaticamente</button><button class="btn" data-act="import">📥 Importar JSON</button><button class="btn" data-act="prompt">🧾 Prompt para IA</button><button class="btn" data-act="ai">✨ Qualidade da IA</button></div></div>
       <div class="card mb"><div class="row between wrap gap">
         <div class="field" style="margin:0;min-width:260px"><label>Material</label><select data-change="bank-mat">${all.map((x) => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.materia)} · ${esc(x.title)}</option>`).join('')}</select></div>
         <div class="stat-row" style="margin:0;flex:1;min-width:300px"><div class="stat"><b>${qs.length}</b><small>questões</small></div><div class="stat"><b>${cov.inBank}/${cov.total}</b><small>slides com questão</small></div><div class="stat"><b style="color:${bad ? 'var(--bad)' : 'var(--good)'}">${bad}</b><small>com pistas graves</small></div><div class="stat"><b>${Q.pct(qs.filter((q) => (q.imageIds || []).length).length, qs.length)}%</b><small>com imagem (ideal ≤ 20%)</small></div><div class="stat"><b>${longest}%</b><small>certa é a maior (ideal ≈ 25%)</small></div></div></div>

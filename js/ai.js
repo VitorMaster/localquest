@@ -149,7 +149,8 @@ ${topics.map(slideBlock).join('\n\n')}`;
     const topics = Q.Engine.activeTopics(material).filter((t) => t.text.length >= 30 || t.images.length);
     const batches = [];
     for (let i = 0; i < topics.length; i += 4) batches.push(topics.slice(i, i + 4));
-    const total = { added: 0, rejected: 0, flagged: 0 };
+    const total = { added: 0, rejected: 0, flagged: 0, removed: 0 };
+    const autoIds = Q.Store.questionsOf(material.id).filter((q) => q.origin === 'auto').map((q) => q.id);
     for (let b = 0; b < batches.length; b++) {
       opts.onProgress && opts.onProgress(b / batches.length, `Gerando lote ${b + 1} de ${batches.length}…`);
       const batch = batches[b];
@@ -186,6 +187,14 @@ ${topics.map(slideBlock).join('\n\n')}`;
       total.added += r.added.length;
       total.rejected += r.rejected.length;
       total.flagged += r.flagged;
+    }
+    if (opts.replaceAuto && total.added > 0) {
+      // troca as questões automáticas pelas da IA, preservando as que já foram respondidas (histórico)
+      const used = new Set(Q.Store.state.attempts.flatMap((a) => a.answers.map((x) => x.qid)));
+      const drop = new Set(autoIds.filter((id) => !used.has(id)));
+      Q.Store.state.questions = Q.Store.state.questions.filter((q) => !drop.has(q.id));
+      total.removed = drop.size;
+      Q.Store.save();
     }
     opts.onProgress && opts.onProgress(1, 'Concluído');
     return total;

@@ -60,6 +60,15 @@
           const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title }), parsed);
           qn += Q.Autogen.fill(m);
           made.push(m);
+          if (S().settings.aiQuality && Q.Ai.hasKey()) {
+            try {
+              $('#u-msg').textContent = `Arquivo ${k + 1} de ${files.length}: refinando questões com IA…`;
+              const r = await Q.Ai.generate(m, { replaceAuto: true });
+              qn += r.added - r.removed;
+            } catch (err) {
+              Q.toast('IA indisponível agora (' + err.message + '). Mantive as questões automáticas.', 'warn', 7000);
+            }
+          }
         }
         mod.close();
         Q.toast(`${made.length} material(is) adicionado(s) e ${qn} questões criadas automaticamente. Já pode simular!`, 'good', 6000);
@@ -115,7 +124,7 @@
       const cov = E.coverage(m);
       return `
       <div class="page-h"><div><div class="eyebrow"><a href="#/biblioteca">← Biblioteca</a></div><h1>${esc(m.title)}</h1><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}<span class="chip">${m.source === 'pdf' ? 'PDF' : m.source === 'pptx' ? 'PPTX' : 'Exemplo'}</span></div></div>
-        <div class="row wrap gap"><a class="btn" href="#/banco/${m.id}">📝 Banco de questões (${cov.questions})</a><button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
+        <div class="row wrap gap"><a class="btn" href="#/banco/${m.id}">📝 Banco de questões (${cov.questions})</a><button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn" data-act="ai-up" data-id="${m.id}">✨ Qualidade da IA</button><button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
       <div class="card mb">${V.coverageBlock(cov)}${V.mapLegend()}</div>
       <div class="card"><h3>Slides <span class="sub">${cov.total} ativos · desative os que não devem ser cobrados (capa, agenda, referências)</span></h3>
         ${cov.topics.map((x) => {
@@ -132,6 +141,7 @@
 
   function detailActs() {
     return {
+      'ai-up': (el) => V.openAi(Q.Store.material(el.dataset.id)),
       'tog-ign': (el) => { const t = Q.Store.topic(el.dataset.m, el.dataset.t); t.ignored = !t.ignored; Q.Store.save(); Q.App.refresh(); },
       'ren-topic': (el) => {
         const t = Q.Store.topic(el.dataset.m, el.dataset.t);
