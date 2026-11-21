@@ -26,5 +26,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+      # o GitHub às vezes demora a listar o pacote recém-enviado; uma pausa evita o erro "Found 0 artifact(s)"
+      - name: Aguarda o pacote ficar disponível
+        run: sleep 25
       - id: deployment
         uses: actions/deploy-pages@v4
