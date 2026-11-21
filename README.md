@@ -2,6 +2,19 @@
 
 Plataforma web (HTML/CSS/JS puro, sem build, sem servidor) para treinar com questões de múltipla escolha (4 alternativas) baseadas **apenas** nos slides das aulas.
 
+## Criar questões a partir do material (o foco do app)
+1. **Biblioteca → Adicionar slides** (PPTX ou PDF; pode enviar vários de uma vez).
+2. Escolha **quantas questões criar (até 50)** e o **nível**: Fácil, Médio, Difícil ou Misto. O mesmo painel está em **✨ Criar questões** em cada material, para criar mais depois.
+3. As perguntas usam só o texto dos seus slides e **não se repetem** (nem enunciado, nem conjunto de alternativas). Se o material não comportar tudo o que você pediu, o app cria o que for possível sem repetir e avisa.
+4. Cada questão traz a justificativa da correta e, para cada errada, de onde ela vem no material.
+5. No **Simulado** dá para filtrar por nível, escolher os temas e simular.
+
+Níveis: **Fácil** = pergunta direta e alternativas bem diferentes · **Médio** = mistura · **Difícil** = alternativas muito parecidas, que exigem comparar com atenção.
+
+## Perfis
+- **Estudante** (padrão): só o essencial — enviar material, criar questões, simular, desempenho, disputas e ranking.
+- **Criador (programador)**: em **Ajustes → Perfil**. Libera o banco de questões (editar/excluir), prompt para IA, importação de JSON, IA pela API, base ENAMED e indicadores técnicos.
+
 ## Como abrir
 - **Windows:** dê dois cliques em `iniciar.bat` (precisa do Python instalado). **Mac/Linux:** `./iniciar.sh`.
 - Ou manualmente: `python3 -m http.server 8000` na pasta e abra `http://localhost:8000`.

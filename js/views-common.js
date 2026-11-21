@@ -7,6 +7,12 @@
   const esc = Q.esc;
   const S = () => Q.Store.state;
 
+  /** Perfil Criador (programador): mostra banco de questões e ferramentas avançadas. */
+  Q.isCreator = () => S().settings.profile === 'criador';
+
+  /** Perfil Criador (programador): mostra banco de questões e ferramentas avançadas. */
+  Q.isCreator = () => S().settings.profile === 'criador';
+
   Q.go = (hash) => {
     if (location.hash === hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
     else location.hash = hash;
@@ -37,6 +43,76 @@
 
   V.matChips = (m) =>
     `<span class="chip">🎓 ${esc(m.curso)}</span><span class="chip">📅 ${esc(m.periodo)}</span><span class="chip">📘 ${esc(m.materia)}</span>`;
+
+  /* ---------- criação de questões (quantidade + nível) ---------- */
+  V.createPanelHTML = (idp, n = 20) => `
+    <div class="field"><label>Quantas questões criar? <span class="muted" style="text-transform:none;letter-spacing:0">(até 50)</span></label><input type="number" id="${idp}-n" min="1" max="50" value="${n}"></div>
+    <div class="field"><label>Nível das perguntas e respostas</label>
+      <div class="seg" id="${idp}-lv">${[['misto', 'Misto'], ['1', 'Fácil'], ['2', 'Médio'], ['3', 'Difícil']].map(([k, l], i) => `<button type="button" data-act="lv-pick" data-lv="${k}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <small class="muted"><b>Fácil:</b> perguntas diretas e alternativas bem diferentes. <b>Médio:</b> mistura. <b>Difícil:</b> alternativas muito parecidas, exigem comparar com atenção. <b>Misto:</b> um pouco de cada.</small></div>`;
+  V.readCreate = (root, idp) => {
+    const lv = (Q.$(`#${idp}-lv .on`, root) || {}).dataset;
+    const k = lv ? lv.lv : 'misto';
+    return { n: Q.clamp(Math.round(+Q.$(`#${idp}-n`, root).value || 20), 1, 50), levels: k === 'misto' ? [1, 2, 3] : [+k] };
+  };
+  /** Mensagem padrão depois de criar questões. */
+  V.createToast = (r) => {
+    if (r.created >= r.requested) Q.toast(`${r.created} questões criadas, sem repetição.`, 'good');
+    else if (r.created) Q.toast(`Criei ${r.created} de ${r.requested}: o material só comporta isso sem repetir perguntas. Para mais, adicione mais conteúdo.`, 'warn', 8000);
+    else Q.toast('Não consegui criar questões novas com o texto deste material.', 'warn', 7000);
+  };
+  V.openCreate = (m) => {
+    if (!m) return;
+    const cap = Q.Autogen.capacity(m);
+    const have = Q.Store.questionsOf(m.id).length;
+    const mod = Q.modal(`<div class="eyebrow">${esc(m.title)}</div><h2>Criar questões</h2>
+      <p class="muted">As perguntas são feitas só com o que está nos seus slides. Hoje este material tem <b>${have}</b> questão(ões) e comporta mais <b>~${cap.total}</b> diferentes.</p>
+      ${V.createPanelHTML('mk', Math.min(20, Math.max(1, cap.total)))}
+      ${have ? '<label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="mk-rep" style="margin-top:4px"><span>Substituir as questões criadas automaticamente que você ainda não respondeu<br><small class="muted">As que já entraram no seu histórico e as que você escreveu ficam.</small></span></label>' : ''}
+      <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="mk-go">✨ Criar questões</button></div>`, { cls: 'small' });
+    Q.$('#mk-go', mod.el).onclick = () => {
+      const c = V.readCreate(mod.el, 'mk');
+      const r = Q.Autogen.create(m, { n: c.n, levels: c.levels, replaceAuto: !!(Q.$('#mk-rep', mod.el) || {}).checked });
+      V.createToast(r);
+      mod.close();
+      Q.App.refresh();
+    };
+  };
+
+  /* ---------- criação de questões (quantidade + nível) ---------- */
+  V.createPanelHTML = (idp, n = 20) => `
+    <div class="field"><label>Quantas questões criar? <span class="muted" style="text-transform:none;letter-spacing:0">(até 50)</span></label><input type="number" id="${idp}-n" min="1" max="50" value="${n}"></div>
+    <div class="field"><label>Nível das perguntas e respostas</label>
+      <div class="seg" id="${idp}-lv">${[['misto', 'Misto'], ['1', 'Fácil'], ['2', 'Médio'], ['3', 'Difícil']].map(([k, l], i) => `<button type="button" data-act="lv-pick" data-lv="${k}" class="${i === 0 ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <small class="muted"><b>Fácil:</b> perguntas diretas e alternativas bem diferentes. <b>Médio:</b> mistura. <b>Difícil:</b> alternativas muito parecidas, exigem comparar com atenção. <b>Misto:</b> um pouco de cada.</small></div>`;
+  V.readCreate = (root, idp) => {
+    const lv = (Q.$(`#${idp}-lv .on`, root) || {}).dataset;
+    const k = lv ? lv.lv : 'misto';
+    return { n: Q.clamp(Math.round(+Q.$(`#${idp}-n`, root).value || 20), 1, 50), levels: k === 'misto' ? [1, 2, 3] : [+k] };
+  };
+  /** Mensagem padrão depois de criar questões. */
+  V.createToast = (r) => {
+    if (r.created >= r.requested) Q.toast(`${r.created} questões criadas, sem repetição.`, 'good');
+    else if (r.created) Q.toast(`Criei ${r.created} de ${r.requested}: o material só comporta isso sem repetir perguntas. Para mais, adicione mais conteúdo.`, 'warn', 8000);
+    else Q.toast('Não consegui criar questões novas com o texto deste material.', 'warn', 7000);
+  };
+  V.openCreate = (m) => {
+    if (!m) return;
+    const cap = Q.Autogen.capacity(m);
+    const have = Q.Store.questionsOf(m.id).length;
+    const mod = Q.modal(`<div class="eyebrow">${esc(m.title)}</div><h2>Criar questões</h2>
+      <p class="muted">As perguntas são feitas só com o que está nos seus slides. Hoje este material tem <b>${have}</b> questão(ões) e comporta mais <b>~${cap.total}</b> diferentes.</p>
+      ${V.createPanelHTML('mk', Math.min(20, Math.max(1, cap.total)))}
+      ${have ? '<label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="mk-rep" style="margin-top:4px"><span>Substituir as questões criadas automaticamente que você ainda não respondeu<br><small class="muted">As que já entraram no seu histórico e as que você escreveu ficam.</small></span></label>' : ''}
+      <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="mk-go">✨ Criar questões</button></div>`, { cls: 'small' });
+    Q.$('#mk-go', mod.el).onclick = () => {
+      const c = V.readCreate(mod.el, 'mk');
+      const r = Q.Autogen.create(m, { n: c.n, levels: c.levels, replaceAuto: !!(Q.$('#mk-rep', mod.el) || {}).checked });
+      V.createToast(r);
+      mod.close();
+      Q.App.refresh();
+    };
+  };
 
   /* ---------- imagens ---------- */
   V.enamedSwitch = () => {
@@ -120,6 +196,10 @@
 
   /* ---------- delegação de eventos comuns ---------- */
   V.common = {
+    'lv-pick': (el) => { Q.$$('button', el.parentElement).forEach((b) => b.classList.toggle('on', b === el)); },
+    'mk-q': (el) => V.openCreate(Q.Store.material(el.dataset.id)),
+    'lv-pick': (el) => { Q.$$('button', el.parentElement).forEach((b) => b.classList.toggle('on', b === el)); },
+    'mk-q': (el) => V.openCreate(Q.Store.material(el.dataset.id)),
     'toggle-enamed': () => {
       const st = S().settings;
       st.enamed = !st.enamed;

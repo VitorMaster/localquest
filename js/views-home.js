@@ -80,12 +80,12 @@
         </div>
       </div>
 
-      <div class="grid g4 mt">
+      ${Q.isCreator() ? `      <div class="grid g4 mt">
         <div class="card kpi"><div class="v">${hasData ? Math.round(sm.raw * 100) + '%' : '—'}</div><div class="l">Acerto bruto</div><div class="d muted">${sm.correct}/${sm.n} questões</div></div>
         <div class="card kpi"><div class="v" style="color:var(--good)">${mastered}</div><div class="l">Temas dominados</div><div class="d muted">${Q.pct(mastered, tot)}% do conteúdo</div></div>
         <div class="card kpi"><div class="v">${hasData ? Math.round(sm.integrity * 100) + '%' : '—'}</div><div class="l">Integridade das provas</div><div class="d muted">${sm.fast + sm.patt} resposta(s) suspeitas</div></div>
         <div class="card kpi"><div class="v">${exhausted}/${covs.length}</div><div class="l">Materiais exauridos</div><div class="d muted">${qTotal} questões no banco</div></div>
-      </div>
+      </div>` : ''}
 
       <div class="split mt">
         <div class="card">

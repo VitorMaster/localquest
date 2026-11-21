@@ -102,8 +102,8 @@
           <div class="grid g2"><div class="field"><label>Chave de API</label><input type="password" id="apikey" value="${esc(st.apiKey)}" placeholder="sk-ant-…" autocomplete="off"></div>
           <div class="field"><label>Modelo</label><input type="text" id="model" value="${esc(st.model)}"></div></div>
           <div class="row wrap gap"><button class="btn" data-act="save-ai">💾 Salvar configuração</button><button class="btn primary" data-act="adv-ai" ${m ? '' : 'disabled'}>✨ Refazer este material com IA</button></div></li>
-        <li><b>Completar com questões automáticas</b><p class="muted">Cria questões para os slides deste material que ainda não têm nenhuma.</p>
-          <button class="btn" data-act="adv-auto" ${m ? '' : 'disabled'}>⚙️ Gerar automaticamente</button></li>
+        <li><b>Criar questões do material</b><p class="muted">Escolha quantidade (até 50) e nível; nada se repete.</p>
+          <button class="btn" data-act="adv-auto" ${m ? '' : 'disabled'}>⚙️ Criar questões</button></li>
         <li><b>Base ENAMED local</b><p class="muted">Com o botão <b>ENAMED</b> (topo da página) ligado, as questões importadas aqui são vinculadas aos temas das suas aulas. Baixe o <b>caderno</b> e o <b>gabarito</b> oficiais no portal do INEP e importe os dois arquivos (PDF ou TXT). O processamento é local; nada é enviado. Questões que dependem de figura são ignoradas.</p>
           <div class="row wrap gap mb"><a class="btn sm" target="_blank" rel="noopener" href="${Q.Enamed.OFFICIAL_URL}">🌐 Página oficial (gov.br)</a><a class="btn sm" target="_blank" rel="noopener" href="${Q.Enamed.provasUrl()}">📄 Buscar provas e gabaritos do INEP</a></div>
           <div class="grid g3"><div class="field"><label>Caderno de prova</label><input type="file" id="en-cad" accept=".pdf,.txt"></div><div class="field"><label>Gabarito</label><input type="file" id="en-gab" accept=".pdf,.txt"></div><div class="field"><label>Identificação</label><input type="text" id="en-label" value="ENAMED ${new Date().getFullYear() - 1}"></div></div>
@@ -118,25 +118,29 @@
       const st = S().settings;
       return `
       <div class="page-h"><div><div class="eyebrow">Ajustes</div><h1>Preferências</h1></div></div>
+      <div class="card mb"><h3>👤 Perfil</h3>
+        <div class="seg"><button data-act="profile" data-v="estudante" class="${st.profile !== 'criador' ? 'on' : ''}">🎓 Estudante</button><button data-act="profile" data-v="criador" class="${st.profile === 'criador' ? 'on' : ''}">🛠 Criador (programador)</button></div>
+        <p class="muted mt-s" style="margin-bottom:0"><small>${st.profile === 'criador' ? 'Mostra o banco de questões, importação por JSON, IA pela API, base ENAMED e indicadores técnicos.' : 'Só o essencial: enviar material, criar questões, simular e acompanhar seu desempenho.'}</small></p></div>
       <div class="grid g2">
         <div class="card"><h3>🎨 Aparência</h3><div class="seg"><button data-act="theme" data-v="dark" class="${st.theme === 'dark' ? 'on' : ''}">🌙 Escuro</button><button data-act="theme" data-v="light" class="${st.theme === 'light' ? 'on' : ''}">☀️ Claro</button></div></div>
-        <div class="card"><h3>🛡️ Anti-chute</h3><p class="muted">Máximo de letras certas iguais seguidas no gabarito.</p><div class="seg">${[1, 2, 3].map((n) => `<button data-act="maxrun" data-v="${n}" class="${(st.maxRun || 2) === n ? 'on' : ''}">${n}</button>`).join('')}</div><p class="muted mt-s"><small>Padrão 2: AA é permitido, AAA não. Escadas (A-B-C) e alternâncias (A-B-A-B) sempre são evitadas.</small></p></div>
+        ${Q.isCreator() ? `<div class="card"><h3>🛡️ Anti-chute</h3><p class="muted">Máximo de letras certas iguais seguidas no gabarito.</p><div class="seg">${[1, 2, 3].map((n) => `<button data-act="maxrun" data-v="${n}" class="${(st.maxRun || 2) === n ? 'on' : ''}">${n}</button>`).join('')}</div><p class="muted mt-s"><small>Padrão 2: AA é permitido, AAA não. Escadas (A-B-C) e alternâncias (A-B-A-B) sempre são evitadas.</small></p></div>` : ''}
         <div class="card"><h3>💾 Dados</h3><p class="muted">Seus dados ficam só neste navegador. Faça backup para trocar de computador (a chave de API não é exportada).</p>
           <div class="row wrap gap"><button class="btn" data-act="export">⬇️ Exportar backup</button><button class="btn" data-act="import">⬆️ Restaurar backup</button><input type="file" id="bk" accept=".json" hidden></div>
           <div class="divider"></div><div class="row wrap gap"><button class="btn" data-act="demo">✨ Carregar exemplo</button><button class="btn danger" data-act="reset">Apagar tudo</button></div>
           <p class="muted mt-s"><small>${Q.Store.persistent ? 'Armazenamento local ativo (IndexedDB).' : '⚠️ Armazenamento local indisponível: os dados serão perdidos ao fechar a página.'}</small></p></div>
       </div>
-      ${advanced(st)}
-      <div class="card mt"><h3>ℹ️ Como o Localquest pontua</h3>
-        <p class="muted"><b>Acerto bruto</b> = % de questões corretas. <b>Domínio real</b> = cada acerto vale 100% se marcado com “certeza”, 60% com “dúvida” e 0% se for “chute”; respostas rápidas demais para a leitura ou em padrão de marcação valem metade. Erros valem 0. <b>Integridade</b> = % de respostas sem sinais de comportamento de chute. Um tema é <b>dominado</b> com domínio ≥ 80% (peso maior para as respostas mais recentes), <b>em progresso</b> de 50% a 80% e <b>frágil</b> abaixo de 50%. Um material é <b>exaurido</b> quando todos os temas ativos têm questões e foram cobrados e todas as questões do banco já foram respondidas.</p></div>`;
+      ${Q.isCreator() ? advanced(st) : ''}
+      ${Q.isCreator() ? `      <div class="card mt"><h3>ℹ️ Como o Localquest pontua</h3>
+        <p class="muted"><b>Acerto bruto</b> = % de questões corretas. <b>Domínio real</b> = cada acerto vale 100% se marcado com “certeza”, 60% com “dúvida” e 0% se for “chute”; respostas rápidas demais para a leitura ou em padrão de marcação valem metade. Erros valem 0. <b>Integridade</b> = % de respostas sem sinais de comportamento de chute. Um tema é <b>dominado</b> com domínio ≥ 80% (peso maior para as respostas mais recentes), <b>em progresso</b> de 50% a 80% e <b>frágil</b> abaixo de 50%. Um material é <b>exaurido</b> quando todos os temas ativos têm questões e foram cobrados e todas as questões do banco já foram respondidas.</p></div>` : ''}`;
     },
     act: {
+      profile: (el) => { S().settings.profile = el.dataset.v; Q.Store.save(); Q.App.refresh(); },
       theme: (el) => { S().settings.theme = el.dataset.v; Q.Store.save(); Q.App.applyTheme(); Q.App.refresh(); },
       maxrun: (el) => { S().settings.maxRun = +el.dataset.v; Q.Store.save(); Q.App.refresh(); },
       'adv-prompt': () => V.openPrompt(Q.Store.material(advMat)),
       'adv-import': () => V.openImport(Q.Store.material(advMat)),
       'adv-ai': () => { S().settings.apiKey = (Q.$('#apikey') || {}).value ? Q.$('#apikey').value.trim() : S().settings.apiKey; V.openAi(Q.Store.material(advMat)); },
-      'adv-auto': () => { const n = Q.Autogen.fill(Q.Store.material(advMat)); Q.toast(n ? `${n} questões criadas` : 'Todos os slides já têm questões', n ? 'good' : 'info'); Q.App.refresh(); },
+      'adv-auto': () => V.openCreate(Q.Store.material(advMat)),
       'en-clear': async () => { if (await Q.confirm('Remover todas as questões do ENAMED importadas?', 'Remover')) { S().enamed = []; S().questions = S().questions.filter((q) => q.origin !== 'enamed'); Q.Store.save(); Q.App.refresh(); } },
       'en-import': async () => {
         const cad = Q.$('#en-cad').files[0], gab = Q.$('#en-gab').files[0];

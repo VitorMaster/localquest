@@ -2,9 +2,9 @@
 (function () {
   const Q = window.Q, V = Q.V, E = Q.Engine, G = Q.Guard, C = Q.Charts, esc = Q.esc;
   const S = () => Q.Store.state;
-  const cfg = { materialIds: null, n: 0, strategy: 'misto', timer: 0, excluded: new Set(), open: new Set() };
+  const cfg = { materialIds: null, n: 0, level: 0, strategy: 'misto', timer: 0, excluded: new Set(), open: new Set() };
 
-  const effective = (ids) => E.pool(ids, [...cfg.excluded], Q.Enamed.enabled());
+  const effective = (ids) => E.pool(ids, [...cfg.excluded], Q.Enamed.enabled()).filter((q) => !cfg.level || (q.difficulty || 2) === cfg.level);
 
   Q.Exam = {
     /** Um toque: simula TODAS as questões dos materiais (as questões foram criadas quando o material foi inserido). */
@@ -73,17 +73,18 @@
             <p class="muted mt-s" style="margin-bottom:0"><small>Marque os materiais e, se quiser, abra “Escolher temas” para tirar slides específicos da prova.${cfg.excluded.size ? ` ${cfg.excluded.size} tema(s) fora.` : ''}</small></p>
             ${shown.map(matCard).join('')}</div>
           <div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🖼️ Usar imagens nas questões</h3><small class="muted">${useImg ? `Ligado: ${imgQs} questão(ões) levam figura, no máximo ~1 a cada 4 na prova.` : `Desligado: ${imgQs} questão(ões) que dependem de figura ficam de fora.`}</small></div>${V.imgSwitch()}</div></div>
-          ${en ? `<div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🎓 Questões ENAMED</h3><small class="muted">${enQs ? `${enQs} questão(ões) do ENAMED vinculadas aos seus temas entram na prova (até ~1 a cada 4).` : 'Nenhuma questão ENAMED vinculada ainda. Importe o caderno e o gabarito oficiais em Ajustes → Versão avançada.'}</small></div>${V.enamedSwitch()}</div></div>` : ''}
+          ${`<div class="card"><div class="row between wrap gap"><div><h3 style="margin:0">🎓 Questões ENAMED</h3><small class="muted">${!en ? 'Desligado. Ligue para ver links de provas do ENAMED nos seus temas (precisa de internet).' : enQs ? `${enQs} questão(ões) do ENAMED vinculadas aos seus temas entram na prova (até ~1 a cada 4).` : 'Ligado: os links do ENAMED aparecem em cada tema.'}</small></div>${V.enamedSwitch()}</div></div>`}
+          <div class="card"><h3>Nível das questões</h3><div class="seg">${[[0, 'Todos'], [1, 'Fácil'], [2, 'Médio'], [3, 'Difícil']].map(([v, l]) => `<button data-act="cfg-level" data-v="${v}" class="${cfg.level === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
           <div class="card"><h3>2 · Quantidade</h3><div class="seg">${[0, 5, 10, 15, 20, 30, 50].map((v) => `<button data-act="cfg-n" data-v="${v}" class="${cfg.n === v ? 'on' : ''}">${v === 0 ? 'Todas' : v}</button>`).join('')}</div>
             <p class="muted mt-s">${pool ? `${n} de ${pool} questões disponíveis.` : 'Nenhuma questão no escopo.'}</p></div>
           <div class="card"><h3>3 · Estratégia</h3><div class="grid g2">${STRATS.map(([k, em, t, d]) => `<button class="opt-card ${cfg.strategy === k ? 'on' : ''}" data-act="cfg-strat" data-v="${k}"><span class="em">${em}</span><span><b>${t}</b><small class="muted">${d}</small></span></button>`).join('')}</div>
             <div class="mt-s"><span class="lbl">Tempo</span> <div class="seg" style="margin-left:8px">${[[0, 'Sem limite'], [1.5, '1,5 min/questão'], [1, '1 min/questão']].map(([v, l]) => `<button data-act="cfg-timer" data-v="${v}" class="${cfg.timer === v ? 'on' : ''}">${l}</button>`).join('')}</div></div></div>
         </div>
         <div class="grid" style="align-content:start;position:sticky;top:80px">
-          <div class="card"><h3>🛡️ Escudo anti-chute ativo</h3>
+${Q.isCreator() ? `          <div class="card"><h3>🛡️ Escudo anti-chute ativo</h3>
             <div class="insight"><span class="em">🔀</span><div><b>Gabarito balanceado</b><small class="muted">Letras certas distribuídas por igual; no máximo ${S().settings.maxRun || 2} iguais seguidas; sem escadas nem alternâncias.</small></div></div>
             <div class="insight"><span class="em">📏</span><div><b>Sem “a maior é a certa”</b><small class="muted">O teto de questões em que a correta é a mais longa fica no nível do acaso.</small></div></div>
-            <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Chutes e respostas rápidas demais não contam como domínio.</small></div></div></div>
+            <div class="insight"><span class="em">🎚️</span><div><b>Segurança em cada resposta</b><small class="muted">Chutes e respostas rápidas demais não contam como domínio.</small></div></div></div>` : ''}
           <button class="btn primary lg" data-act="start" ${pool ? '' : 'disabled'}>▶ Simular ${pool ? n + ' questões' : ''}</button>
         </div>
       </div>`;
@@ -94,6 +95,7 @@
       'cfg-open': (el) => { cfg.open.has(el.dataset.id) ? cfg.open.delete(el.dataset.id) : cfg.open.add(el.dataset.id); Q.App.refresh(); },
       'topics-all': (el) => { E.activeTopics(Q.Store.material(el.dataset.id)).forEach((t) => cfg.excluded.delete(t.id)); Q.App.refresh(); },
       'topics-none': (el) => { E.activeTopics(Q.Store.material(el.dataset.id)).forEach((t) => cfg.excluded.add(t.id)); Q.App.refresh(); },
+      'cfg-level': (el) => { cfg.level = +el.dataset.v; Q.App.refresh(); },
       'cfg-n': (el) => { cfg.n = +el.dataset.v; Q.App.refresh(); },
       'cfg-strat': (el) => { cfg.strategy = el.dataset.v; Q.App.refresh(); },
       'cfg-timer': (el) => { cfg.timer = +el.dataset.v; Q.App.refresh(); },
@@ -103,7 +105,7 @@
         const fp = effective(cfg.materialIds);
         const pool = useImg ? fp.length : fp.filter((q) => !(q.imageIds || []).length).length;
         const n = Math.min(cfg.n === 0 ? pool : cfg.n, pool);
-        Q.Exam.start({ useImages: useImg, enamed: Q.Enamed.enabled(), excludeTopicIds: [...cfg.excluded], materialIds: cfg.materialIds, n, strategy: cfg.strategy, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
+        Q.Exam.start({ useImages: useImg, enamed: Q.Enamed.enabled(), excludeTopicIds: [...cfg.excluded], onlyIds: cfg.level ? fp.map((q) => q.id) : undefined, materialIds: cfg.materialIds, n, strategy: cfg.strategy, timerMin: cfg.timer ? Math.ceil(n * cfg.timer) : 0, filter: Object.assign({}, V.filter()) });
       },
     },
     change: {
@@ -272,7 +274,7 @@
         <div>
           <div class="stat-row"><div class="stat"><b>${sm.n}/${at.requested}</b><small>questões respondidas / escolhidas</small></div><div class="stat"><b>${sm.luck}</b><small>acertos sem mérito (sorte)</small></div><div class="stat"><b>${sm.overconf}</b><small>erros com “certeza”</small></div><div class="stat"><b>${Q.fmtDur(sm.ms)}</b><small>tempo médio por questão</small></div></div>
           <div class="mt-s"><span class="lbl">Suas respostas</span>${strip(at)}</div>
-          <div class="mt-s"><span class="lbl">Gabarito sorteado</span> <small class="muted">(maior sequência de letras iguais: ${stat.maxRun} · escadas: ${stat.stairs} · alternâncias: ${stat.alts})</small>${keyStrip(at)}</div>
+${Q.isCreator() ? `          <div class="mt-s"><span class="lbl">Gabarito sorteado</span> <small class="muted">(maior sequência de letras iguais: ${stat.maxRun} · escadas: ${stat.stairs} · alternâncias: ${stat.alts})</small>${keyStrip(at)}</div>` : ''}
         </div></div></div>
 
       <div class="card mt"><h3>🗺️ Panorama do conteúdo <span class="sub">quanto do material você já cobriu</span></h3>
@@ -285,9 +287,9 @@
         <div class="card"><h3>🔧 Pontos de melhoria</h3>${ins.tips.map((t) => `<div class="insight"><span class="em">${t.icon}</span><div><b>${esc(t.title)}</b><small class="muted">${esc(t.text)}</small>${t.action ? `<div class="mt-s">${t.action.href ? `<a class="btn sm" href="${t.action.href}">${t.action.label}</a>` : `<button class="btn sm" data-act="r-drill" data-s="${t.action.act === 'drill-new' ? 'cobertura' : 'fraquezas'}" data-id="${at.id}">${t.action.label}</button>`}</div>` : ''}</div></div>`).join('')}</div>
       </div>
 
-      <div class="card mt"><h3>🎚️ Calibragem <span class="sub">o que você acha que sabe × o que acertou</span></h3>
+${Q.isCreator() ? `      <div class="card mt"><h3>🎚️ Calibragem <span class="sub">o que você acha que sabe × o que acertou</span></h3>
         ${calib.map((c) => C.bar(`${E.CONF_LABEL[c.conf]} (${c.n})`, c.acc, { text: c.n ? Math.round(c.acc * 100) + '% de acerto' : '—', color: c.conf === 'guess' ? 'var(--warn)' : undefined })).join('')}
-        <small class="muted">Ideal: “certeza” com acerto alto e “chute” com acerto próximo de 25%.</small></div>
+        <small class="muted">Ideal: “certeza” com acerto alto e “chute” com acerto próximo de 25%.</small></div>` : ''}
 
       <div class="card mt"><div class="row between wrap gap"><h3>🔍 Revisão questão a questão</h3>
         <div class="seg">${[['all', 'Todas'], ['wrong', 'Erradas'], ['sus', 'Chutes/suspeitas']].map(([k, l]) => `<button data-act="rev-f" data-f="${k}" class="${revFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>

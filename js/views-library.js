@@ -21,7 +21,7 @@
         <div class="field"><label>Período (só o número)</label><input type="text" id="u-periodo" inputmode="numeric" placeholder="Ex.: 6" value="${esc(f.periodo || '')}"></div>
         <div class="field"><label>Matéria</label><input type="text" id="u-materia" list="dl-materia" placeholder="Ex.: Geriatria" value="${esc(f.materia || '')}"></div>
         <div class="field"><label>Título da aula</label><input type="text" id="u-title" placeholder="Ex.: Aula 3 — Avaliação funcional"></div>
-      </div>${datalists()}
+      </div>${V.createPanelHTML('up')}${datalists()}
       <div id="u-prog" hidden class="mb"><div class="progress"><i style="width:0"></i></div><small class="muted" id="u-msg"></small></div>
       <div class="row end gap"><button class="btn ghost" data-close>Cancelar</button><button class="btn primary" id="u-go" disabled>Ler slides</button></div>`);
     const el = mod.el, $ = (s) => Q.$(s, el);
@@ -49,6 +49,7 @@
       $('#u-prog').hidden = false;
       const made = [];
       let qn = 0;
+      const cc = V.readCreate(el, 'up');
       try {
         for (let k = 0; k < files.length; k++) {
           const f = files[k];
@@ -58,10 +59,10 @@
           });
           const title = files.length === 1 ? meta.title : f.name.replace(/\.(pptx|pdf)$/i, '').replace(/[_-]+/g, ' ');
           const m = Q.Ingest.createMaterial(Object.assign({}, meta, { title }), parsed);
-          qn += Q.Autogen.fill(m);
+          qn += Q.Autogen.create(m, { n: cc.n, levels: cc.levels }).created;
           if (Q.Enamed) Q.Enamed.sync();
           made.push(m);
-          if (S().settings.aiQuality && Q.Ai.hasKey()) {
+          if (Q.isCreator() && S().settings.aiQuality && Q.Ai.hasKey()) {
             try {
               $('#u-msg').textContent = `Arquivo ${k + 1} de ${files.length}: refinando questões com IA…`;
               const r = await Q.Ai.generate(m, { replaceAuto: true });
@@ -101,7 +102,7 @@
           <div><h3><a href="#/biblioteca/${m.id}">${esc(m.title)}</a></h3><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}</div></div>
           ${imgs.length ? `<div class="thumbs">${imgs.map((i) => V.img(i.id, 'thumb')).join('')}</div>` : ''}
           <div class="stat-row"><div class="stat"><b>${cov.total}</b><small>temas (slides)</small></div><div class="stat"><b>${cov.questions}</b><small>questões</small></div><div class="stat"><b>${Math.round(cov.usage * 100)}%</b><small>cobertos</small></div></div>
-          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><a class="btn sm" href="#/banco/${m.id}">Questões</a><button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn sm danger" data-act="del-mat" data-id="${m.id}">🗑 Excluir</button></div></div>`;
+          <div class="row gap wrap"><a class="btn sm" href="#/biblioteca/${m.id}">Abrir</a><button class="btn sm" data-act="mk-q" data-id="${m.id}">✨ Criar questões</button>${Q.isCreator() ? `<a class="btn sm ghost" href="#/banco/${m.id}">Banco</a>` : ''}<button class="btn sm primary" data-act="sim" data-id="${m.id}">▶ Simular</button><button class="btn sm danger" data-act="del-mat" data-id="${m.id}">🗑 Excluir</button></div></div>`;
       }).join('')}</div>`;
     },
     mount() {
@@ -133,7 +134,7 @@
       const cov = E.coverage(m);
       return `
       <div class="page-h"><div><div class="eyebrow"><a href="#/biblioteca">← Biblioteca</a></div><h1>${esc(m.title)}</h1><div class="row wrap gap" style="margin-top:8px">${V.matChips(m)}<span class="chip">${m.source === 'pdf' ? 'PDF' : m.source === 'pptx' ? 'PPTX' : 'Exemplo'}</span></div></div>
-        <div class="row wrap gap"><a class="btn" href="#/banco/${m.id}">📝 Banco de questões (${cov.questions})</a><button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button> <button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
+        <div class="row wrap gap"><button class="btn" data-act="mk-q" data-id="${m.id}">✨ Criar questões (${cov.questions})</button>${Q.isCreator() ? `<a class="btn ghost" href="#/banco/${m.id}">📝 Banco</a>` : ''}<button class="btn primary" data-act="sim" data-id="${m.id}">▶ Simular</button> <button class="btn ghost" data-act="edit-mat" data-id="${m.id}">Editar</button><button class="btn danger" data-act="del-mat" data-id="${m.id}">Excluir</button></div></div>
       <div class="card mb">${V.coverageBlock(cov)}${V.mapLegend()}</div>
       <div class="card"><h3>Slides <span class="sub">${cov.total} ativos · desative os que não devem ser cobrados (capa, agenda, referências)</span></h3>
         ${cov.topics.map((x) => {

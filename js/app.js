@@ -6,7 +6,7 @@
   const NAV = [
     ['inicio', '🏠', 'Início'],
     ['biblioteca', '📚', 'Biblioteca'],
-    ['banco', '📝', 'Questões'],
+    ['banco', '📝', 'Questões', 'criador'],
     ['simulado', '⚡', 'Simulado'],
     ['desempenho', '📊', 'Desempenho'],
     ['disputas', '⚔️', 'Disputas'],
@@ -31,17 +31,18 @@
   function renderChrome(name) {
     const active = name === 'prova' || name === 'resultado' ? (name === 'prova' ? 'simulado' : 'desempenho') : name;
     Q.$('#nav').innerHTML = `<div class="brand"><i>▲</i><div>Localquest<small class="muted">simulador de provas</small></div></div>
-      ${NAV.map(([k, ic, l]) => `<a class="nl ${active === k ? 'on' : ''}" href="#/${k}"><span class="ic">${ic}</span><span class="lb">${l}</span></a>`).join('')}
+      ${NAV.filter((n) => !n[3] || Q.isCreator()).map(([k, ic, l]) => `<a class="nl ${active === k ? 'on' : ''}" href="#/${k}"><span class="ic">${ic}</span><span class="lb">${l}</span></a>`).join('')}
       <div class="sp"></div><div class="nav-foot">Questões só dos seus slides.<br>Dados salvos neste navegador.</div>`;
     const bar = Q.$('#topbar');
     if (name === 'prova') { bar.innerHTML = ''; bar.style.display = 'none'; return; }
     bar.style.display = '';
     bar.innerHTML = NO_FILTER.has(name) ? '<div class="grow"></div>' : `${V.filtersBar()}<div class="grow"></div>`;
-    bar.innerHTML += `${V.enamedSwitch()}${V.imgSwitch()}<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
+    bar.innerHTML += `${Q.isCreator() ? V.enamedSwitch() + V.imgSwitch() : ''}<button class="btn sm ghost" data-act="toggle-theme" title="Alternar tema" aria-label="Alternar tema">${S().settings.theme === 'light' ? '🌙' : '☀️'}</button>`;
   }
 
   App.render = (keepScroll) => {
-    const { name, params } = parse();
+    let { name, params } = parse();
+    if (name === 'banco' && !Q.isCreator()) { name = 'inicio'; params = []; history.replaceState(null, '', '#/inicio'); }
     const key = ROUTES[name];
     const view = Q.Views[key];
     if (App.view && App.view !== view && App.view.unmount) App.view.unmount();

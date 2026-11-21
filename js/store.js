@@ -13,7 +13,7 @@
     questions: [], // {id,materialId,topicIds,stem,options[4],correct,explanation,imageIds,difficulty,fixedOrder,origin}
     attempts: [], // ver engine.js
     session: null, // prova em andamento
-    settings: { theme: 'dark', apiKey: '', model: 'claude-sonnet-5-5', maxRun: 2, useImages: true, aiQuality: false, enamed: false, nick: '', groups: [] },
+    settings: { theme: 'dark', apiKey: '', model: 'claude-sonnet-5-5', maxRun: 2, useImages: true, aiQuality: false, enamed: false, nick: '', groups: [], profile: 'estudante' },
     ui: { filter: { curso: '', periodo: '', materia: '' } },
   });
 
